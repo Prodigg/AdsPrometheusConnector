@@ -15,6 +15,7 @@ With this connector, it is possible to monitor ADS variables without any complex
 ## Requirements
 - Linux
 - CMake (if building from source)
+- [pistache](https://github.com/pistacheio/pistache) 
 
 ## Features
 
@@ -28,6 +29,14 @@ To start the program, launch it and provide in the first argument the path of th
 ```bash
 ./AdsPrometeusConnector config.json
 ```
+
+### Compile with cmake
+
+1. Run the ADS lib install script `./install_adslib.sh`
+2. create a build directory with `mkdir build`
+3. navigate into the build folder `cd build`
+4. configure cmake with `cmake ..`
+5. run the build with `cmake --build . -- -j 30`
 
 ### Running as a daemon
 If you are using systemd, you can install this as a daemon. I have provided a example service configuration.
