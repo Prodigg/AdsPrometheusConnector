@@ -67,9 +67,8 @@ PrometheusEndpoint_t::PrometheusEndpoint_t(ProcessDataBuffer_t& dataBuffer, cons
 
     endpoint.init(opts);
     endpoint.setHandler(router.handler());
-    // deactivated because the main loop is not needed at the moment, it may be that in the future the thread is reactivated.
-    // but for less complexity use the serve method from the class
-    //_thread.emplace(std::jthread(&PrometheusEndpoint_t::threadLoop, this));
+
+    _thread.emplace(std::jthread(&PrometheusEndpoint_t::threadLoop, this));
 }
 
 void PrometheusEndpoint_t::getData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) {
@@ -77,7 +76,13 @@ void PrometheusEndpoint_t::getData(const Pistache::Rest::Request& request, Pista
 }
 
 void PrometheusEndpoint_t::threadLoop(std::stop_token stoken) {
-    endpoint.serve();
+    while (true) {
+        try {
+            endpoint.serve();
+        } catch (std::exception &e) {
+            std::cerr << "Server crashed: " << e.what() << std::endl;
+        }
+    }
 }
 
 std::string PrometheusEndpoint_t::generateLabel(const prometheusMetric_t& metric) {
