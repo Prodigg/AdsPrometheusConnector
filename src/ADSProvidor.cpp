@@ -32,14 +32,15 @@ void AdsProvidor_t::updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefi
 }
 
 void AdsProvidor_t::threadLoop(std::stop_token stoken) {
+    auto next = std::chrono::steady_clock::now();
+
     while (!stoken.stop_requested()) {
         {
             std::scoped_lock(_symbolNamesMutex);
             forceReadSymbol();
         }
-        const auto start = std::chrono::high_resolution_clock::now();
-        while (start + std::chrono::milliseconds(500) > std::chrono::high_resolution_clock::now())
-            ; // wait to allow for addSymbol to insert data into _symbolName
+        next += std::chrono::milliseconds(500);
+        std::this_thread::sleep_until(next); // wait to allow for addSymbol to insert data into _symbolName
     }
 }
 
