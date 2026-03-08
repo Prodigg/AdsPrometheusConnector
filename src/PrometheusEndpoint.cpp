@@ -60,7 +60,7 @@ std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_
         ss << escapeHelpStr(data.customDescription);
     ss << "\n";
 
-    ss << "#TYPE " << additionalDataName << " gauge\n";
+    ss << "# TYPE " << additionalDataName << " gauge\n";
 
     ss << additionalDataName;
     if (data.carryLabels)

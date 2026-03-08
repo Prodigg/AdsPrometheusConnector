@@ -24,6 +24,23 @@
 
   "NodeRed.bDoNotDisturbStatus": {
     "ADSDatatype": "BOOL",
-    "scrapingTime": 1
+    "scrapingTime": 1,
+
+    "currentLastTime": {
+      "show": true,
+      "carryLabels": true,
+      "alias": "",
+      "customDescription": "customDescription"
+    },
+    "readTime": {
+      "show": true,
+      "carryLabels": false,
+      "alias": "readTimeDoNotDisturb",
+      "labels": {
+        "testLabel": {
+          "value": "labelValue"
+        }
+      }
+    }
   }
 }

@@ -27,7 +27,8 @@ int main(int argc, char* argv[]) {
 
     if (args.size() != 2) {
         std::cerr << "Usage: " << argv[0] << " [pathToConfig]" << std::endl;
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
+        args.emplace_back("/home/prodigg/CLionProjects/CppAdsPrometeusConnector/testConfig.json");
     }
 
     config_t config;

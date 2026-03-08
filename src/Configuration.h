@@ -35,7 +35,7 @@ using json = nlohmann::json;
  *          },
  *          ...
  *      }
- * [optional] "timeBetweenRead": {
+ * [optional] "currentLastTime": {
  *          "show": <true|false>
  *          [optional] "carryLabels": <true|false>
  *          [optional] "alias": "<aliasName>"
@@ -148,6 +148,8 @@ private:
     static prometheusMetricType toPrometheusMetricType(const std::string& data);
     static symbolDataType_t toSymbolDataType (const std::string& data);
 
+    additionalDataMetric_t parseAdditionalDataMetric (const std::string& symbol, const std::string& additionalDataName);
+
     json configData;
 
     ConfigNetId localNetId {"0.0.0.0.0"};
@@ -163,6 +165,11 @@ private:
         symbolDataType_t ADSType;
         std::chrono::high_resolution_clock::duration scrapingDuration;
         std::vector<label_t> labels;
+
+        additionalDataMetric_t currentLastTime; // a metric for time between last and current read
+        additionalDataMetric_t ReadTime; // time to read a symbol
+        additionalDataMetric_t LastTryStatus; // status of last try
+        additionalDataMetric_t LastReadTimestamp; // the timestamp of the last read
     };
     std::vector<variable_t> variables;
 

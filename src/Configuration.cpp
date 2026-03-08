@@ -31,6 +31,66 @@
  *          },
  *          ...
  *      }
+ * [optional] "currentLastTime": {
+ *          "show": <true|false>
+ *          [optional] "carryLabels": <true|false>
+ *          [optional] "alias": "<aliasName>"
+ *          [optional] "customDescription": "<customDescription>"
+ *          [optional] "labels": {
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              ...
+ *          }
+ *      }
+ * [optional] "readTime": {
+ *          "show": <true|false>
+ *          [optional] "carryLabels": <true|false>
+ *          [optional] "alias": "<aliasName>"
+ *          [optional] "customDescription": "<customDescription>"
+ *          [optional] "labels": {
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              ...
+ *          }
+ *      }
+ * [optional] "lastTrySuccessful": {
+ *          "show": <true|false>
+ *          [optional] "carryLabels": <true|false>
+ *          [optional] "alias": "<aliasName>"
+ *          [optional] "customDescription": "<customDescription>"
+ *          [optional] "labels": {
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              ...
+ *          }
+ *      }
+ * [optional] "readTimestamp": {
+ *          "show": <true|false>
+ *          [optional] "carryLabels": <true|false>
+ *          [optional] "alias": "<aliasName>"
+ *          [optional] "customDescription": "<customDescription>"
+ *          [optional] "labels": {
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              "<labelName>": {
+ *                  "value": "<value>"
+ *              },
+ *              ...
+ *          }
+ *      }
  * },
  * ...
  *
@@ -106,26 +166,74 @@ void config_t::parseSymbol(const std::string& symbol) {
     }
 
     // check labels
-    if (!configData.at(symbol).contains("labels")) {
-        variables.push_back(variable);
-        return;
-    }
+    if (configData.at(symbol).contains("labels")) {
+        for (const auto& value: configData.at(symbol).at("labels").items()) {
+            if (value.key() == "alias") continue;
+            if (value.key() == "type") continue;
+            if (value.key() == "description") continue;
+            if (value.key() == "ADSDatatype") continue;
+            if (value.key() == "scrapingTime") continue;
 
-    for (const auto& value: configData.at(symbol).at("labels").items()) {
-        if (value.key() == "alias") continue;
-        if (value.key() == "type") continue;
-        if (value.key() == "description") continue;
-        if (value.key() == "ADSDatatype") continue;
-        if (value.key() == "scrapingTime") continue;
-
-        if (!value.value().contains("value")) {
-            std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << std::endl;
-            exit(EXIT_FAILURE);
+            if (!value.value().contains("value")) {
+                std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            variable.labels.push_back({value.key(), value.value().at("value")});
         }
-        variable.labels.push_back({value.key(), value.value().at("value")});
     }
+    // parse additional data
+    variable.currentLastTime = parseAdditionalDataMetric(symbol, "currentLastTime");
+    variable.ReadTime = parseAdditionalDataMetric(symbol, "readTime");
+    variable.LastTryStatus = parseAdditionalDataMetric(symbol, "lastTrySuccessful");
+    variable.LastReadTimestamp = parseAdditionalDataMetric(symbol, "readTimestamp");
 
     variables.push_back(variable);
+}
+
+additionalDataMetric_t config_t::parseAdditionalDataMetric (const std::string& symbol, const std::string& additionalDataName) {
+    additionalDataMetric_t additionalData;
+    if (!configData.at(symbol).contains(additionalDataName)) {
+        additionalData.show = false;
+        return additionalData;
+    }
+    if (!configData.at(symbol).at(additionalDataName).contains("show")) {
+        std::cerr<<"ERROR: missing show value in " << additionalDataName << " at symbol: "<< symbol << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    additionalData.show = configData.at(symbol).at(additionalDataName).at("show");
+
+    if (!configData.at(symbol).at(additionalDataName).contains("carryLabels"))
+        additionalData.carryLabels = true;
+    else
+        additionalData.carryLabels = configData.at(symbol).at(additionalDataName).at("carryLabels");
+
+    if (!configData.at(symbol).at(additionalDataName).contains("alias"))
+        additionalData.alias = "";
+    else
+        additionalData.alias = configData.at(symbol).at(additionalDataName).at("alias");
+
+    if (!configData.at(symbol).at(additionalDataName).contains("customDescription"))
+        additionalData.customDescription = "";
+    else
+        additionalData.customDescription = configData.at(symbol).at(additionalDataName).at("customDescription");
+
+    if (configData.at(symbol).at(additionalDataName).contains("labels")) {
+        for (const auto& value: configData.at(symbol).at(additionalDataName).at("labels").items()) {
+            if (value.key() == "alias") continue;
+            if (value.key() == "type") continue;
+            if (value.key() == "description") continue;
+            if (value.key() == "ADSDatatype") continue;
+            if (value.key() == "scrapingTime") continue;
+
+            if (!value.value().contains("value")) {
+                std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << "." << additionalDataName << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            additionalData.labels.push_back({value.key(), value.value().at("value")});
+        }
+    }
+    return additionalData;
 }
 
 void config_t::configureADSProvidor(AdsProvidor_t& AdsProvidor) const {
@@ -136,7 +244,7 @@ void config_t::configureADSProvidor(AdsProvidor_t& AdsProvidor) const {
 
 void config_t::configurePrometheusEndpoint(PrometheusEndpoint_t& Endpoint) const {
     for (const variable_t & variable: variables) {
-        Endpoint.addSymbol({variable.metricType, variable.symbolADSName, variable.description, variable.alias, variable.labels});
+        Endpoint.addSymbol({variable.metricType, variable.symbolADSName, variable.description, variable.alias, variable.labels, variable.currentLastTime, variable.ReadTime, variable.LastTryStatus, variable.LastReadTimestamp});
     }
 }
 
