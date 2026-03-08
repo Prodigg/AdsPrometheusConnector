@@ -16,7 +16,8 @@ using json = nlohmann::json;
  *      "localNetId": "<localNetID>",
  *      "remoteNetId": "<remoteNetID>",
  *      "remoteIPv4": "<remoteIPv4>",
- *      "httpPort": "<httpPort>"
+ *      "httpPort": <httpPort>,
+ *      [optional] "pollTimeResolution": <resolutionTime_ms>
  * },
  *
  *
@@ -137,6 +138,7 @@ public:
     [[nodiscard]] inline ConfigNetId getRemoteNetId() const {return remoteNetId;}
     [[nodiscard]] inline std::string getRemoteIp() const {return remoteIp;};
     [[nodiscard]] inline uint16_t getHttpPort() const {return httpPort;};
+    [[nodiscard]] inline long getRefreshTimeResolution() const {return refreshTimeResolution;};
 
     void configureADSProvidor(AdsProvidor_t& AdsProvidor) const;
     void configurePrometheusEndpoint(PrometheusEndpoint_t& Endpoint) const;
@@ -152,6 +154,7 @@ private:
 
     json configData;
 
+    long refreshTimeResolution = 500;
     ConfigNetId localNetId {"0.0.0.0.0"};
     ConfigNetId remoteNetId {"0.0.0.0.0"};
     std::string remoteIp;

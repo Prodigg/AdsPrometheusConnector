@@ -54,7 +54,7 @@ struct symbolDefinition_t {
 
 class AdsProvidor_t {
 public:
-    explicit AdsProvidor_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId);
+    explicit AdsProvidor_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution);
     ~AdsProvidor_t();
     void addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::high_resolution_clock::duration scrapingTime);
 
@@ -127,6 +127,7 @@ private:
 
     ProcessDataBuffer_t& _processDataBuffer;
 
+    std::atomic<long> _refreshTimeResolution = 500;
     std::mutex _symbolNamesMutex;
     std::vector<symbolDefinition_t> _symbolNames;
 };

@@ -27,8 +27,7 @@ int main(int argc, char* argv[]) {
 
     if (args.size() != 2) {
         std::cerr << "Usage: " << argv[0] << " [pathToConfig]" << std::endl;
-        //exit(EXIT_FAILURE);
-        args.emplace_back("/home/prodigg/CLionProjects/CppAdsPrometeusConnector/testConfig.json");
+        exit(EXIT_FAILURE);
     }
 
     config_t config;
@@ -39,7 +38,8 @@ int main(int argc, char* argv[]) {
     AdsProvidor_t adsProvidor(processDataBuffer,
         {config.getRemoteNetId()._1, config.getRemoteNetId()._2, config.getRemoteNetId()._3, config.getRemoteNetId()._4, config.getRemoteNetId()._5, config.getRemoteNetId()._6},
         config.getRemoteIp(),
-        {config.getLocalNetId()._1, config.getLocalNetId()._2, config.getLocalNetId()._3, config.getLocalNetId()._4, config.getLocalNetId()._5,config.getLocalNetId()._6});
+        {config.getLocalNetId()._1, config.getLocalNetId()._2, config.getLocalNetId()._3, config.getLocalNetId()._4, config.getLocalNetId()._5,config.getLocalNetId()._6},
+        config.getRefreshTimeResolution());
 
     config.configureADSProvidor(adsProvidor);
 

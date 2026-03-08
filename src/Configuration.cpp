@@ -12,7 +12,8 @@
  *      "localNetId": "<localNetID>",
  *      "remoteNetId": "<remoteNetID>",
  *      "remoteIPv4": "<remoteIPv4>",
- *      "httpPort": "<httpPort>"
+ *      "httpPort": <httpPort>,
+ *      [optional] "pollTimeResolution": <resolutionTime_ms>
  * },
  *
  *
@@ -138,6 +139,10 @@ void config_t::processConfig() {
         std::cerr<<e.what()<<std::endl;
         exit(EXIT_FAILURE);
     }
+    if (!configData.at("global").contains("pollTimeResolution"))
+        refreshTimeResolution = 500;
+    else
+        refreshTimeResolution = configData.at("global").at("pollTimeResolution");
 
     //parse the ads symbols
     for (const auto & value: configData.items()) {
@@ -168,11 +173,11 @@ void config_t::parseSymbol(const std::string& symbol) {
     // check labels
     if (configData.at(symbol).contains("labels")) {
         for (const auto& value: configData.at(symbol).at("labels").items()) {
-            if (value.key() == "alias") continue;
-            if (value.key() == "type") continue;
-            if (value.key() == "description") continue;
-            if (value.key() == "ADSDatatype") continue;
-            if (value.key() == "scrapingTime") continue;
+            //if (value.key() == "alias") continue;
+            //if (value.key() == "type") continue;
+            //if (value.key() == "description") continue;
+            //if (value.key() == "ADSDatatype") continue;
+            //if (value.key() == "scrapingTime") continue;
 
             if (!value.value().contains("value")) {
                 std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << std::endl;
@@ -220,11 +225,11 @@ additionalDataMetric_t config_t::parseAdditionalDataMetric (const std::string& s
 
     if (configData.at(symbol).at(additionalDataName).contains("labels")) {
         for (const auto& value: configData.at(symbol).at(additionalDataName).at("labels").items()) {
-            if (value.key() == "alias") continue;
-            if (value.key() == "type") continue;
-            if (value.key() == "description") continue;
-            if (value.key() == "ADSDatatype") continue;
-            if (value.key() == "scrapingTime") continue;
+            // if (value.key() == "alias") continue;
+            // if (value.key() == "type") continue;
+            // if (value.key() == "description") continue;
+            // if (value.key() == "ADSDatatype") continue;
+            // if (value.key() == "scrapingTime") continue;
 
             if (!value.value().contains("value")) {
                 std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << "." << additionalDataName << std::endl;

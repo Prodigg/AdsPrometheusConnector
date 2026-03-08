@@ -8,8 +8,8 @@
 #include <iostream>
 #include <mutex>
 
-AdsProvidor_t::AdsProvidor_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId) :
-    _processDataBuffer(processDataBuffer) {
+AdsProvidor_t::AdsProvidor_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution) :
+    _processDataBuffer(processDataBuffer), _refreshTimeResolution(refreshTimeResolution) {
 
     bhf::ads::SetLocalAddress(localAmsNetId);
     _device.emplace(remoteIPv4, remoteAmsNetId, AMSPORT_R0_PLC_TC3);
@@ -55,7 +55,7 @@ void AdsProvidor_t::threadLoop(std::stop_token stoken) {
             std::scoped_lock(_symbolNamesMutex);
             forceReadSymbol();
         }
-        next += std::chrono::milliseconds(500);
+        next += std::chrono::milliseconds(_refreshTimeResolution);
         std::this_thread::sleep_until(next); // wait to allow for addSymbol to insert data into _symbolName
     }
 }

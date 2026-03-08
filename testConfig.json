@@ -3,7 +3,8 @@
     "localNetId": "192.168.1.126.1.1",
     "remoteNetId": "5.109.7.180.1.1",
     "remoteIp": "plc-raphael.localdomain",
-    "httpPort": 9080
+    "httpPort": 9080,
+    "pollTimeResolution": 500
   },
 
   "NodeRed.bIsLightOn": {
