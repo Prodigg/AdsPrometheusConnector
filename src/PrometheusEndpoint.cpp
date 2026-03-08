@@ -38,9 +38,39 @@ std::string PrometheusEndpoint_t::generateDataLine(const prometheusMetric_t& met
     std::stringstream ss;
     std::string value;
     _dataBuffer.getSymbolValue(metric.symbolName, value);
-    ss << getPrometheusMetricName(metric) << generateLabel(metric) << " " << value << "\n";
+    ss << getPrometheusMetricName(metric) << generateLabel(metric.labels) << " " << value << "\n";
     return ss.str();
 }
+
+std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) {
+    if (!data.show)
+        return "";
+    std::string additionalDataName;
+    if (data.alias.empty())
+        additionalDataName = getPrometheusMetricName(metric) + "_" + normalNamePrefix;
+    else
+        additionalDataName = data.alias;
+
+
+    std::stringstream ss;
+    ss << "# HELP " << additionalDataName + " ";
+    if (data.customDescription.empty())
+        ss << normalDescription;
+    else
+        ss << escapeHelpStr(data.customDescription);
+    ss << "\n";
+
+    ss << "#TYPE " << additionalDataName << " gauge\n";
+
+    ss << additionalDataName;
+    if (data.carryLabels)
+        ss << generateLabel(metric.labels);
+    else
+        ss << generateLabel(data.labels);
+    ss << " " << value << "\n";
+    return ss.str();
+}
+
 
 std::string PrometheusEndpoint_t::generateEndpointData() const {
     std::stringstream ss;
@@ -48,6 +78,26 @@ std::string PrometheusEndpoint_t::generateEndpointData() const {
         ss << generateHelp(metric);
         ss << generateType(metric);
         ss << generateDataLine(metric);
+        // additional data
+        symbolData_t data;
+        _dataBuffer.getSymbolData(metric.symbolName, data);
+
+        ss << generateAdditionalData(metric, metric.currentLastTime,
+            "current_last_time",
+            "The time between this and last read Type in MS",
+            std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(data.lastCurrentTime).count()));
+        ss << generateAdditionalData(metric, metric.ReadTime,
+            "read_time",
+            "The time it took to read the symbol Type in NS",
+            std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(data.symbolReadTime).count()));
+        ss << generateAdditionalData(metric, metric.LastTryStatus,
+            "last_try_status",
+            "true if the last try was successful",
+            std::to_string(data.wasLastReadSuccessful);
+        ss << generateAdditionalData(metric, metric.LastReadTimestamp,
+            "read_time",
+            "The time it took to read the symbol Type in NS",
+            std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(data.lastReadTime.time_since_epoch()).count());
     }
     return ss.str();
 }
@@ -86,11 +136,11 @@ void PrometheusEndpoint_t::threadLoop(std::stop_token stoken) {
     }
 }
 
-std::string PrometheusEndpoint_t::generateLabel(const prometheusMetric_t& metric) {
-    if (metric.labels.empty())
+std::string PrometheusEndpoint_t::generateLabel(const std::vector<label_t>& labels) {
+    if (labels.empty())
         return "";
     std::string labelStr = "{";
-    for (const auto &[label, value]: metric.labels) {
+    for (const auto &[label, value]: labels) {
         labelStr += label;
         labelStr += "=\"";
         labelStr += escapeLabelStr(value);

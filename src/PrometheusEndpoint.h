@@ -114,7 +114,7 @@ private:
      * @param metric
      * @return
      */
-    static std::string generateLabel(const prometheusMetric_t& metric);
+    static std::string generateLabel(const std::vector<label_t>& labels);
 
     /*!
      * @brief properly escape the help text
@@ -137,32 +137,12 @@ private:
     std::string generateEndpointData() const;
 
     /*!
-     * @brief generate prometheus symbol for time between last and current read
-     * @param metric metric
+     * @brief generate prometheus symbol for additonal data
+     * @param data additional data
      * @return
      */
-    std::string generateTimeBetweenLastAndCurrentRead(const prometheusMetric_t& metric);
+    static std::string generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value);
 
-    /*!
-     * @brief generate prometheus symbol for read time
-     * @param metric metric
-     * @return
-     */
-    std::string generateReadTime(const prometheusMetric_t& metric);
-
-    /*!
-     * @brief generate prometheus symbol for last try status
-     * @param metric metric
-     * @return
-     */
-    std::string generateLastTryStatus(const prometheusMetric_t& metric);
-
-    /*!
-     * @brief generate prometheus symbol for read timestamp
-     * @param metric metric
-     * @return
-     */
-    std::string generateLastReadTimestamp(const prometheusMetric_t& metric);
 
     std::vector<prometheusMetric_t> _metrics;
     std::optional<std::jthread> _thread;
