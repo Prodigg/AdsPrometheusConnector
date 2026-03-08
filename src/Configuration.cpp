@@ -163,7 +163,7 @@ void config_t::parseSymbol(const std::string& symbol) {
         if (configData.at(symbol).contains("description"))
             variable.description = configData.at(symbol).at("description");
         variable.ADSType = toSymbolDataType(configData.at(symbol).at("ADSDatatype"));
-        variable.scrapingDuration = std::chrono::seconds(configData.at(symbol).at("scrapingTime"));
+        variable.scrapingDuration = std::chrono::milliseconds(static_cast<long>(static_cast<double>(configData.at(symbol).at("scrapingTime"))*1000));
     } catch (const json::exception& e) {
         std::cerr<<"ERROR: failed to parse" << symbol << " structure\n";
         std::cerr<<e.what()<<std::endl;
