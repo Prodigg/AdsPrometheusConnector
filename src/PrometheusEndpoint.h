@@ -141,7 +141,7 @@ private:
      * @param data additional data
      * @return
      */
-    static std::string generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value);
+    std::string generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) const;
 
 
     std::vector<prometheusMetric_t> _metrics;

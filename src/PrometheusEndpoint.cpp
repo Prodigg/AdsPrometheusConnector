@@ -36,13 +36,14 @@ std::string PrometheusEndpoint_t::generateType(const prometheusMetric_t& metric)
 
 std::string PrometheusEndpoint_t::generateDataLine(const prometheusMetric_t& metric) const {
     std::stringstream ss;
-    std::string value;
-    _dataBuffer.getSymbolValue(metric.symbolName, value);
-    ss << getPrometheusMetricName(metric) << generateLabel(metric.labels) << " " << value << "\n";
+    symbolData_t data;
+    _dataBuffer.getSymbolData(metric.symbolName, data);
+    ss << getPrometheusMetricName(metric) << generateLabel(metric.labels) << " " << data.symbolValue << " ";
+    ss << std::chrono::duration_cast<std::chrono::microseconds>(data.lastReadTime.time_since_epoch()).count() << "\n";
     return ss.str();
 }
 
-std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) {
+std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) const {
     if (!data.show)
         return "";
     std::string additionalDataName;
@@ -51,6 +52,8 @@ std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_
     else
         additionalDataName = data.alias;
 
+    symbolData_t rawData;
+    _dataBuffer.getSymbolData(metric.symbolName, rawData);
 
     std::stringstream ss;
     ss << "# HELP " << additionalDataName + " ";
@@ -67,7 +70,7 @@ std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_
         ss << generateLabel(metric.labels);
     else
         ss << generateLabel(data.labels);
-    ss << " " << value << "\n";
+    ss << " " << value << std::chrono::duration_cast<std::chrono::microseconds>(rawData.lastReadTime.time_since_epoch()).count() << "\n";
     return ss.str();
 }
 
