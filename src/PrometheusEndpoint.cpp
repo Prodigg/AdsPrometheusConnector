@@ -39,7 +39,7 @@ std::string PrometheusEndpoint_t::generateDataLine(const prometheusMetric_t& met
     symbolData_t data;
     _dataBuffer.getSymbolData(metric.symbolName, data);
     ss << getPrometheusMetricName(metric) << generateLabel(metric.labels) << " " << data.symbolValue << " ";
-    ss << std::chrono::duration_cast<std::chrono::microseconds>(data.lastReadTime.time_since_epoch()).count() << "\n";
+    ss << std::chrono::duration_cast<std::chrono::milliseconds>(data.lastReadTime.time_since_epoch()).count() << "\n";
     return ss.str();
 }
 
@@ -70,7 +70,7 @@ std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_
         ss << generateLabel(metric.labels);
     else
         ss << generateLabel(data.labels);
-    ss << " " << value << " " << std::chrono::duration_cast<std::chrono::microseconds>(rawData.lastReadTime.time_since_epoch()).count() << "\n";
+    ss << " " << value << " " << std::chrono::duration_cast<std::chrono::milliseconds>(rawData.lastReadTime.time_since_epoch()).count() << "\n";
     return ss.str();
 }
 
