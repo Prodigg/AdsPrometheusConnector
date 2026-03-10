@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ProcessDataBuffer.h"
+#include "AdsVariableList.h"
 #include <pistache/endpoint.h>
 #include <pistache/router.h>
 
@@ -17,7 +18,7 @@
  *
  * #HELP <metric_name> <description>
  * #TYPE <metric_name> <[counter], [gauge], [untyped]>
- * <metric_name> <data>
+ * <metric_name> <data> <timestamp>
  */
 
 enum class prometheusMetricType {

@@ -34,7 +34,7 @@ To start the program, launch it and provide in the first argument the path of th
 
 ### Compile with cmake
 
-1. Run the ADS lib install script `./install_adslib.sh`
+1. Run the ADS lib install script `./install_adslib.sh`. It is important to use the provided lib, because it is modified.
 2. create a build directory with `mkdir build`
 3. navigate into the build folder `cd build`
 4. configure cmake with `cmake ..`

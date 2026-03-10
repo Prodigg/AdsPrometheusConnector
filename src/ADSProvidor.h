@@ -10,6 +10,7 @@
 #include <vector>
 #include <chrono>
 #include <concepts>
+#include <stack>
 #include <type_traits>
 #include <thread>
 
@@ -17,6 +18,7 @@
 #include "AdsDevice.h"
 #include "AdsVariable.h"
 #include "AdsNotificationOOI.h"
+#include "AdsVariableList.h"
 #include "ProcessDataBuffer.h"
 
 enum class symbolDataType_t {
@@ -77,14 +79,6 @@ private:
     static uint32_t mapSymbolTipeToSize(const symbolDataType_t& symbolType );
 
     /*!
-     * @brief is called every time a symbol changes
-     * @param addr netId of remote
-     * @param notification actual callback data
-     * @param user user
-     */
-    void symbolChangedCallback(const AmsAddr* addr, const AdsNotificationHeader* notification, uint32_t user);
-
-    /*!
      * @brief uses a symbol definition to set the symbol to a new value
      */
     void updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, std::string value, std::chrono::steady_clock::time_point readStartTime) const;
@@ -94,16 +88,31 @@ private:
     void updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, const T value, const std::chrono::steady_clock::time_point readStartTime) requires std::is_integral_v<T> || std::is_floating_point_v<T> { updateSymbolProcessDataBuffer (symbolDefinition, std::to_string(value), readStartTime); }
 
     /*!
+     * @brief a special implementation for updateSymbolProcessDataBuffer because it also resolves the datatype
+     */
+    void updateSymbolProcessDataBuffer(std::string symbolName, AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime);
+
+    /*!
      * @brief updates the status, if the read fails
      */
     void updateSymbolProcessDataBufferFailed(symbolDefinition_t& symbolDefinition) const;
+    void updateSymbolProcessDataBufferFailed(const std::string & symbolName);
 
     /*!
      * @brief this function checks time last read from symbols and reads them if necessary.
      */
     void forceReadSymbol();
 
+    /*!
+     * @brief mark symbol to read
+     * @param symbolDefinition
+     */
     void readSymbol(symbolDefinition_t& symbolDefinition);
+
+    /*!
+     * @brief read all marked symbols and insert them into the process data buffer
+     */
+    void readAllSymbols();
 
     /*!
      * Converts a duration to a time that is n*100ns
@@ -124,6 +133,8 @@ private:
     //! this object should be created in the constructor and destroyed with the destructor
     std::optional<std::jthread> _thread;
 
+    //! this stack points to the data in the vector _symbolNames
+    std::stack<symbolDefinition_t*> _symbolsToRead;
 
     ProcessDataBuffer_t& _processDataBuffer;
 
