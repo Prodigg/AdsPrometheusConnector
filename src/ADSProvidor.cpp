@@ -124,7 +124,11 @@ void AdsProvider_t::readAllMarkedSymbols() {
             updateSymbolProcessDataBuffer(symbolName, readVars, startReadTime);
         }
 
-        _processDataBuffer.insertReadGroupMetric({.readTime = std::chrono::steady_clock::now() - startReadTime, .worker = "main", .readGroup = std::to_string(readGroupIndex)});
+        _processDataBuffer.insertReadGroupMetric({
+            .readTime = std::chrono::steady_clock::now() - startReadTime,
+            .dataReadTime = std::chrono::system_clock::now(),
+            .worker = "main",
+            .readGroup = std::to_string(readGroupIndex)});
 
         symbolsToRead.clear();
         ++readGroupIndex;

@@ -44,11 +44,12 @@ void ProcessDataBuffer_t::insertReadGroupMetric(const ADSReadGroupMetric_t& read
     std::scoped_lock lock (_dataAccess);
     if (const auto it = std::ranges::find(_readGroupMetrics, readGroupMetric); it == _readGroupMetrics.end())
         _readGroupMetrics.push_back(readGroupMetric);
-    else
+    else {
         it->readTime = readGroupMetric.readTime;
+        it->dataReadTime = readGroupMetric.dataReadTime;
+    }
 }
-
-void ProcessDataBuffer_t::dumpReadGroupMetrics(std::vector<ADSReadGroupMetric_t>& readGroupMetrics) {
+std::vector<ADSReadGroupMetric_t> ProcessDataBuffer_t::dumpReadGroupMetrics() {
     std::scoped_lock lock (_dataAccess);
-    readGroupMetrics = _readGroupMetrics;
+    return _readGroupMetrics;
 }

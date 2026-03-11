@@ -76,8 +76,19 @@ std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_
 
 std::string PrometheusEndpoint_t::generateEndpointData() const {
     std::stringstream ss;
-    for (const prometheusMetric_t & metric: _metrics) {
 
+    // group metrics
+    for (const auto &[readTime, dataReadTime, worker, readGroup]: _dataBuffer.dumpReadGroupMetrics()) {
+        ss << grafanaMetricGenerator_t::generateMetric(
+            "connector_read_group_read_time_nanoseconds",
+            std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(readTime).count()),
+            "the readtime of a read group",
+            prometheusMetricType::GAUGE,
+            {{"worker", worker}, {"group", readGroup}},
+            dataReadTime);
+    }
+
+    for (const prometheusMetric_t & metric: _metrics) {
         // data
         symbolData_t data;
         _dataBuffer.getSymbolData(metric.symbolName, data);

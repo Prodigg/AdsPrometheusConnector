@@ -19,7 +19,8 @@ struct symbolData_t {
 };
 
 struct ADSReadGroupMetric_t {
-    std::chrono::steady_clock::duration readTime;
+    std::chrono::steady_clock::duration readTime; // the ADS read time
+    std::chrono::system_clock::time_point dataReadTime; // for the timestamp
     std::string worker;
     std::string readGroup;
     bool operator==(const ADSReadGroupMetric_t & other) const {
@@ -69,9 +70,9 @@ public:
 
     /*!
      * @brief dumps the read group metrics
-     * @param readGroupMetrics [out] the read group metrics
+     * @return the read group metrics
      */
-    void dumpReadGroupMetrics(std::vector<ADSReadGroupMetric_t>& readGroupMetrics);
+    [[nodiscard]] std::vector<ADSReadGroupMetric_t> dumpReadGroupMetrics();
 private:
     std::mutex _dataAccess;
     std::unordered_map<std::string, symbolData_t> _symbolsValues;
