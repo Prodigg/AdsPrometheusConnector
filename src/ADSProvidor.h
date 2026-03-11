@@ -90,7 +90,7 @@ private:
     /*!
      * @brief a special implementation for updateSymbolProcessDataBuffer because it also resolves the datatype
      */
-    void updateSymbolProcessDataBuffer(std::string symbolName, AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime);
+    void updateSymbolProcessDataBuffer(std::string symbolName, const AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime);
 
     /*!
      * @brief updates the status, if the read fails
@@ -141,4 +141,5 @@ private:
     std::atomic<long> _refreshTimeResolution = 500;
     std::mutex _symbolNamesMutex;
     std::vector<symbolDefinition_t> _symbolNames;
+    std::unordered_map<std::string, AdsSymbolEntry> _symbolCache;
 };

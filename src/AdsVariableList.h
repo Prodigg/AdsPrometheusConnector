@@ -9,55 +9,68 @@
 
 #include "AdsDevice.h"
 #include "vector"
+#include <algorithm>
 
 /*
  * Thanks to li317546360 for writing this code. GitHub: https://github.com/li317546360
  */
 
+struct cacheSymbolEntry_t {
+    AdsSymbolEntry symbolInfo;
+    std::string symbolName;
+};
+
 struct AdsVariableList {
-    AdsVariableList(const AdsDevice& route, const std::vector<std::string>& symbolNames)
-        :m_route{route},
-        m_symboleNames {symbolNames},
-        m_symboleEntrys {route.getSymbolEntrys(m_symboleNames)}
+    AdsVariableList(const AdsDevice& route, const std::vector<std::string>& symbolNames, std::unordered_map<std::string, AdsSymbolEntry>& symbolEntryCache) :
+        m_route{route},
+        m_symbolNames {symbolNames}
     {
-        int dataSize = 0;
-        for (const AdsSymbolEntry &en : m_symboleEntrys) {
-            dataSize += en.size;
-            AdsSymbolInfoByName info {en.iGroup,en.iOffs,en.size};
-            m_symboleInfos.push_back(info);
+        unsigned int dataSize = 0;
+        for (const std::string& symbol: symbolNames) {
+            if (symbolEntryCache.contains(symbol)) {
+                m_symbolEntries.push_back(symbolEntryCache.at(symbol));
+            } else {
+                AdsSymbolEntry symbolEntry = m_route.getSymbolEntry(symbol);
+                symbolEntryCache.emplace(symbol, symbolEntry);
+                m_symbolEntries.push_back(symbolEntry);
+            }
+            const AdsSymbolEntry& lastElement = m_symbolEntries.back();
+            dataSize += lastElement.size;
+            m_symbolInfos.emplace_back(lastElement.iGroup,lastElement.iOffs,lastElement.size);
         }
-        m_rBuf.resize(4 * m_symboleNames.size() + dataSize,0);
+
+        m_rBuf.resize(4 * m_symbolNames.size() + dataSize,0);
         m_wBuf.resize(12 * symbolNames.size() + dataSize,0);
         initWBuf();
     }
 
     void read() {
         uint32_t bytesRead = 0;
-        size_t symboleSize = m_symboleNames.size();
-        uint32_t error = m_route.ReadWriteReqEx2(
+        const size_t symbolSize = m_symbolNames.size();
+        const uint32_t error = m_route.ReadWriteReqEx2(
             ADSIGRP_SUMUP_READ,
-            symboleSize,
+            symbolSize,
             m_rBuf.size(),
             const_cast<uint8_t*>(m_rBuf.data()),
-            12 * symboleSize,
-            m_symboleInfos.data(),
+            12 * symbolSize,
+            m_symbolInfos.data(),
             &bytesRead);
         if (error || (m_rBuf.size() != bytesRead)) {
             throw AdsException(error);
         }
     }
 
-    void write() {
+    void write() const {
         uint32_t bytesRead = 0;
-        size_t symboleSize = m_symboleNames.size();
+        const size_t symbolSize = m_symbolNames.size();
         copyData2WriteBuf();
 
         size_t readSize = 0;
-        auto rbf = getStateBuf(&readSize);
+        const auto rbf = getStateBuf(&readSize);
 
-        uint32_t error = m_route.ReadWriteReqEx2(
+        const uint32_t error = m_route.ReadWriteReqEx2(
             ADSIGRP_SUMUP_WRITE,
-            symboleSize,
+            symbolSize,
             readSize,
             rbf,
             m_wBuf.size(),
@@ -68,53 +81,52 @@ struct AdsVariableList {
         }
     }
 
-    size_t getSymboleSize(const std::string& name) const {
-        int index = 0;
-        for (const std::string &n : m_symboleNames) {
-            if (name == n) {
-                return m_symboleEntrys.at(index).size;
-            }
-            ++index;
+    [[nodiscard]] size_t getSymbolSize(const std::string& name) const {
+        for (size_t i = 0; i < m_symbolNames.size(); ++i) {
+            if (name == m_symbolNames.at(i))
+                return m_symbolEntries.at(i).size;
         }
+        return 0;
     }
 
-    void * getSymboleData(const std::string& name, size_t* length) {
+    void * getSymbolData(const std::string& name, size_t* length) const {
 
         auto pdbf = getDataBuf(nullptr);
 
-        for (int i=0; i<m_symboleEntrys.size();++i) {
-            if (name == m_symboleNames.at(i)) {
+        for (int i=0; i<m_symbolEntries.size();++i) {
+            if (name == m_symbolNames.at(i)) {
                 if (length) {
-                    *length = m_symboleEntrys.at(i).size;
+                    *length = m_symbolEntries.at(i).size;
                 }
                 return pdbf;
             }
-            pdbf += m_symboleEntrys.at(i).size;
+            pdbf += m_symbolEntries.at(i).size;
         }
         return nullptr;
     }
 
-    void setSymbolData(const std::string& name, void *data, size_t length, size_t begin = 0) {
+    void setSymbolData(const std::string& name, const void *data, const size_t length, const size_t begin = 0) const {
         size_t size = 0;
-        auto buf = static_cast<uint8_t*>(getSymboleData(name,&size));
+        const auto buf = static_cast<uint8_t*>(getSymbolData(name,&size));
         if ((begin + length) > size)
             return;
         std::memcpy((buf + begin),data,length);
     }
 
-    int32_t getStateCode(const std::string& name) const {
+    [[nodiscard]] int32_t getStateCode(const std::string& name) const {
 
-        auto psbf = getStateBuf(nullptr);
-        for(int i=0;i<m_symboleNames.size();++i) {
-            if (name == m_symboleNames.at(i)) {
+        const auto psbf = getStateBuf(nullptr);
+        for(int i=0;i<m_symbolNames.size();++i) {
+            if (name == m_symbolNames.at(i)) {
                 return *reinterpret_cast<int32_t*>(psbf + 4 * i);
             }
         }
+        return 0;
     }
 
 private:
     uint8_t * getStateBuf(size_t* size) const{
-        size_t len = 4 * m_symboleNames.size();
+        const size_t len = 4 * m_symbolNames.size();
 
         if (size) {
             *size = len;
@@ -123,8 +135,8 @@ private:
     }
 
     uint8_t * getDataBuf(size_t* size) const{
-        size_t stlen = 4 * m_symboleNames.size();
-        size_t len = m_rBuf.size() - stlen;
+        const size_t stlen = 4 * m_symbolNames.size();
+        const size_t len = m_rBuf.size() - stlen;
 
         if (size) {
             *size = len;
@@ -133,8 +145,8 @@ private:
     }
 
     uint8_t * getWriteDataBuf(size_t* size) const{
-        size_t inflen = 12 * m_symboleNames.size();
-        size_t len = m_rBuf.size() - inflen;
+        const size_t inflen = 12 * m_symbolNames.size();
+        const size_t len = m_rBuf.size() - inflen;
 
         if (size) {
             *size = len;
@@ -142,30 +154,30 @@ private:
         return const_cast<uint8_t*>(m_wBuf.data()) + inflen;
     }
 
-    void copyData2WriteBuf() {
+    void copyData2WriteBuf() const {
         size_t rdataSize = 0;
-        auto rbf = getDataBuf(&rdataSize);
-        auto wbf = getWriteDataBuf(nullptr);
+        const auto rbf = getDataBuf(&rdataSize);
+        const auto wbf = getWriteDataBuf(nullptr);
         std::memcpy(wbf,rbf,rdataSize);
     }
 
     void initWBuf() {
         auto pInt32buf = reinterpret_cast<int32_t*>(const_cast<uint8_t*>(m_wBuf.data()));
-        auto symboleSize = m_symboleNames.size();
-        for (int i = 0; i < symboleSize; ++i) {
-            *pInt32buf = m_symboleEntrys.at(i).iGroup;
+        const auto symbolSize = m_symbolNames.size();
+        for (int i = 0; i < symbolSize; ++i) {
+            *pInt32buf = m_symbolEntries.at(i).iGroup;
             ++pInt32buf;
-            *pInt32buf = m_symboleEntrys.at(i).iOffs;
+            *pInt32buf = m_symbolEntries.at(i).iOffs;
             ++pInt32buf;
-            *pInt32buf = m_symboleEntrys.at(i).size;
+            *pInt32buf = m_symbolEntries.at(i).size;
             ++pInt32buf;
         }
     }
 
     const AdsDevice &m_route;
-    const std::vector<std::string> m_symboleNames;
-    const std::vector<AdsSymbolEntry> m_symboleEntrys;
-    std::vector<AdsSymbolInfoByName> m_symboleInfos;
+    const std::vector<std::string> m_symbolNames;
+    std::vector<AdsSymbolEntry> m_symbolEntries;
+    std::vector<AdsSymbolInfoByName> m_symbolInfos;
     std::vector<uint8_t> m_rBuf;
     std::vector<uint8_t> m_wBuf;
 };
