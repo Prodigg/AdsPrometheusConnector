@@ -4,6 +4,7 @@
 #include "ProcessDataBuffer.h"
 
 #include <stdexcept>
+#include <unistd.h>
 
 void ProcessDataBuffer_t::setSymbolValue(const std::string &value, const std::string &symbolName) {
     setSymbolData(symbolName, {
@@ -22,19 +23,32 @@ void ProcessDataBuffer_t::getSymbolValue(const std::string &symbolName, std::str
 }
 
 void ProcessDataBuffer_t::setSymbolData(const std::string& symbolName, symbolData_t data) {
-    std::scoped_lock lock (dataAccess);
-    if (symbolsValues.contains(symbolName))
-        symbolsValues.at(symbolName) = data;
+    std::scoped_lock lock (_dataAccess);
+    if (_symbolsValues.contains(symbolName))
+        _symbolsValues.at(symbolName) = data;
     else
-        symbolsValues.emplace(symbolName, data);
+        _symbolsValues.emplace(symbolName, data);
 }
 
 void ProcessDataBuffer_t::getSymbolData(const std::string& symbolName, symbolData_t& data) {
-    std::scoped_lock lock (dataAccess);
+    std::scoped_lock lock (_dataAccess);
     try {
-        data = symbolsValues.at(symbolName);
+        data = _symbolsValues.at(symbolName);
     } catch (std::out_of_range &ex) {
         data.symbolValue = "NaN";
         data.wasLastReadSuccessful = false;
     }
+}
+
+void ProcessDataBuffer_t::insertReadGroupMetric(const ADSReadGroupMetric_t& readGroupMetric) {
+    std::scoped_lock lock (_dataAccess);
+    if (const auto it = std::ranges::find(_readGroupMetrics, readGroupMetric); it == _readGroupMetrics.end())
+        _readGroupMetrics.push_back(readGroupMetric);
+    else
+        it->readTime = readGroupMetric.readTime;
+}
+
+void ProcessDataBuffer_t::dumpReadGroupMetrics(std::vector<ADSReadGroupMetric_t>& readGroupMetrics) {
+    std::scoped_lock lock (_dataAccess);
+    readGroupMetrics = _readGroupMetrics;
 }

@@ -12,10 +12,19 @@
 
 struct symbolData_t {
     std::chrono::steady_clock::duration lastCurrentTime; // Time between last and current read
-    std::chrono::steady_clock::duration symbolReadTime; // Time to read the symbol
+    std::chrono::steady_clock::duration symbolReadTime; // Time to read the symbol TODO: expected removal later when single symbol read times are deprecated
     std::chrono::system_clock::time_point lastReadTime;
     bool wasLastReadSuccessful = false; // true if last read attempt was successfull
     std::string symbolValue;
+};
+
+struct ADSReadGroupMetric_t {
+    std::chrono::steady_clock::duration readTime;
+    std::string worker;
+    std::string readGroup;
+    bool operator==(const ADSReadGroupMetric_t & other) const {
+        return worker == other.worker && readGroup == other.readGroup;
+    }
 };
 
 /*!
@@ -51,7 +60,20 @@ public:
      */
     [[deprecated]]
     void getSymbolValue(const std::string &symbolName, std::string& value);
+
+    /*!
+     * @brief insert a readGroupMetric
+     * @param readGroupMetric readGroupMetric to insert
+     */
+    void insertReadGroupMetric(const ADSReadGroupMetric_t& readGroupMetric);
+
+    /*!
+     * @brief dumps the read group metrics
+     * @param readGroupMetrics [out] the read group metrics
+     */
+    void dumpReadGroupMetrics(std::vector<ADSReadGroupMetric_t>& readGroupMetrics);
 private:
-    std::mutex dataAccess;
-    std::unordered_map<std::string, symbolData_t> symbolsValues;
+    std::mutex _dataAccess;
+    std::unordered_map<std::string, symbolData_t> _symbolsValues;
+    std::vector<ADSReadGroupMetric_t> _readGroupMetrics;
 };
