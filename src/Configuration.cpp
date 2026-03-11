@@ -241,7 +241,7 @@ additionalDataMetric_t config_t::parseAdditionalDataMetric (const std::string& s
     return additionalData;
 }
 
-void config_t::configureADSProvidor(AdsProvidor_t& AdsProvidor) const {
+void config_t::configureADSProvidor(AdsProvider_t& AdsProvidor) const {
     for (const variable_t & variable: variables) {
         AdsProvidor.addSymbol(variable.symbolADSName, variable.ADSType, variable.scrapingDuration);
     }

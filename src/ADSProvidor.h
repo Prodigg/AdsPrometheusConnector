@@ -54,10 +54,10 @@ struct symbolDefinition_t {
  * This may change if the performance is terrible, and significant effort on optimizations is required
 */
 
-class AdsProvidor_t {
+class AdsProvider_t {
 public:
-    explicit AdsProvidor_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution);
-    ~AdsProvidor_t();
+    explicit AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution);
+    ~AdsProvider_t();
     void addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::high_resolution_clock::duration scrapingTime);
 
 private:
@@ -81,7 +81,7 @@ private:
     /*!
      * @brief uses a symbol definition to set the symbol to a new value
      */
-    void updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, std::string value, std::chrono::steady_clock::time_point readStartTime) const;
+    void updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, const std::string& value, std::chrono::steady_clock::time_point readStartTime) const;
     void updateSymbolProcessDataBuffer(symbolDefinition_t &symbolDefinition, const char value, const std::chrono::steady_clock::time_point readStartTime) const { updateSymbolProcessDataBuffer (symbolDefinition, std::string{value}, readStartTime);}
     void updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, const bool value, const std::chrono::steady_clock::time_point readStartTime) const { updateSymbolProcessDataBuffer (symbolDefinition, (value ? std::string("1") : std::string("0")), readStartTime); }
     template <typename T>
@@ -90,7 +90,7 @@ private:
     /*!
      * @brief a special implementation for updateSymbolProcessDataBuffer because it also resolves the datatype
      */
-    void updateSymbolProcessDataBuffer(std::string symbolName, const AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime);
+    void updateSymbolProcessDataBuffer(const std::string& symbolName, const AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime);
 
     /*!
      * @brief updates the status, if the read fails

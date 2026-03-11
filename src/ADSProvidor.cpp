@@ -10,25 +10,25 @@
 
 #include "AdsVariableList.h"
 
-AdsProvidor_t::AdsProvidor_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution) :
+AdsProvider_t::AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution) :
     _processDataBuffer(processDataBuffer), _refreshTimeResolution(refreshTimeResolution) {
 
     bhf::ads::SetLocalAddress(localAmsNetId);
     _device.emplace(remoteIPv4, remoteAmsNetId, AMSPORT_R0_PLC_TC3);
-    _thread.emplace(std::jthread(&AdsProvidor_t::threadLoop, this));
+    _thread.emplace(std::jthread(&AdsProvider_t::threadLoop, this));
 }
 
-AdsProvidor_t::~AdsProvidor_t() {
+AdsProvider_t::~AdsProvider_t() {
     _thread.reset();
     _device.reset();
 }
 
-void AdsProvidor_t::addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::high_resolution_clock::duration scrapingTime) {
+void AdsProvider_t::addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::high_resolution_clock::duration scrapingTime) {
     std::scoped_lock(_symbolNamesMutex);
     _symbolNames.emplace_back(symbolName, symbolType, scrapingTime, std::chrono::high_resolution_clock::now());
 }
 
-void AdsProvidor_t::updateSymbolProcessDataBufferFailed(symbolDefinition_t& symbolDefinition) const {
+void AdsProvider_t::updateSymbolProcessDataBufferFailed(symbolDefinition_t& symbolDefinition) const {
     symbolData_t data;
     _processDataBuffer.getSymbolData(symbolDefinition.symbolName, data);
     data.wasLastReadSuccessful = false;
@@ -36,7 +36,7 @@ void AdsProvidor_t::updateSymbolProcessDataBufferFailed(symbolDefinition_t& symb
     symbolDefinition.lastRead = std::chrono::high_resolution_clock::now();
 }
 
-void AdsProvidor_t::updateSymbolProcessDataBufferFailed(const std::string & symbolName) {
+void AdsProvider_t::updateSymbolProcessDataBufferFailed(const std::string & symbolName) {
     size_t symbolDefinitionIndex = -1;
     for (size_t i = 0; i < _symbolNames.size(); ++i) {
         if (symbolName== _symbolNames.at(i).symbolName) {
@@ -51,9 +51,9 @@ void AdsProvidor_t::updateSymbolProcessDataBufferFailed(const std::string & symb
     updateSymbolProcessDataBufferFailed(_symbolNames.at(symbolDefinitionIndex));
 }
 
-void AdsProvidor_t::updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, const std::string value, const std::chrono::steady_clock::time_point readStartTime) const {
-    auto lastCurrentTime = std::chrono::high_resolution_clock::now() - symbolDefinition.lastRead;
-    auto symbolReadTime = std::chrono::steady_clock::now() - readStartTime;
+void AdsProvider_t::updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefinition, const std::string& value, const std::chrono::steady_clock::time_point readStartTime) const {
+    const auto lastCurrentTime = std::chrono::high_resolution_clock::now() - symbolDefinition.lastRead;
+    const auto symbolReadTime = std::chrono::steady_clock::now() - readStartTime;
     _processDataBuffer.setSymbolData(symbolDefinition.symbolName,
         {.lastCurrentTime = lastCurrentTime,
             .symbolReadTime = symbolReadTime,
@@ -64,7 +64,7 @@ void AdsProvidor_t::updateSymbolProcessDataBuffer(symbolDefinition_t& symbolDefi
     symbolDefinition.lastRead = std::chrono::high_resolution_clock::now();
 }
 
-void AdsProvidor_t::threadLoop(std::stop_token stoken) {
+void AdsProvider_t::threadLoop(std::stop_token stoken) {
     auto next = std::chrono::steady_clock::now();
 
     while (!stoken.stop_requested()) {
@@ -77,7 +77,7 @@ void AdsProvidor_t::threadLoop(std::stop_token stoken) {
     }
 }
 
-void AdsProvidor_t::forceReadSymbol() {
+void AdsProvider_t::forceReadSymbol() {
     for (symbolDefinition_t& symbol: _symbolNames) {
         if (symbol.lastRead + symbol.expirationDuration <= std::chrono::high_resolution_clock::now())
             readSymbol(symbol);
@@ -85,14 +85,16 @@ void AdsProvidor_t::forceReadSymbol() {
     readAllSymbols();
 }
 
-void AdsProvidor_t::readSymbol(symbolDefinition_t& symbolDefinition) {
+void AdsProvider_t::readSymbol(symbolDefinition_t& symbolDefinition) {
     _symbolsToRead.push(&symbolDefinition);
 }
 
-void AdsProvidor_t::readAllSymbols() {
+void AdsProvider_t::readAllSymbols() {
     if (_symbolsToRead.empty())
         return;
-    auto startReadTime = std::chrono::steady_clock::now();
+
+    const auto startReadTime = std::chrono::steady_clock::now();
+
     std::vector<std::string> symbolsToRead;
     if (_symbolsToRead.size() > 200)
         symbolsToRead.reserve(200);
@@ -100,11 +102,13 @@ void AdsProvidor_t::readAllSymbols() {
         symbolsToRead.reserve(_symbolsToRead.size());
 
     // read symbols until empty
+    size_t readGroupIndex = 0;
     while (!_symbolsToRead.empty()) {
         for (int i = 0; i < symbolsToRead.capacity(); ++i) {
             symbolsToRead.emplace_back(_symbolsToRead.top()->symbolName);
             _symbolsToRead.pop();
         }
+
         AdsVariableList readVars(_device.value(), symbolsToRead, _symbolCache);
         try {
             readVars.read();
@@ -114,15 +118,20 @@ void AdsProvidor_t::readAllSymbols() {
                 updateSymbolProcessDataBufferFailed(symbol);
             }
         }
+
         // insert data into process data buffer
         for (const std::string & symbolName: symbolsToRead) {
             updateSymbolProcessDataBuffer(symbolName, readVars, startReadTime);
         }
+
+        _processDataBuffer.insertReadGroupMetric({.readTime = std::chrono::steady_clock::now() - startReadTime, .worker = "main", .readGroup = std::to_string(readGroupIndex)});
+
         symbolsToRead.clear();
+        ++readGroupIndex;
     }
 }
 
-void AdsProvidor_t::updateSymbolProcessDataBuffer(std::string symbolName, const AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime) {
+void AdsProvider_t::updateSymbolProcessDataBuffer(const std::string& symbolName, const AdsVariableList& varList, std::chrono::steady_clock::time_point readStartTime) {
     // search for symbol definition
     size_t symbolDefinitionIndex = -1;
     for (size_t i = 0; i < _symbolNames.size(); ++i) {
@@ -186,11 +195,7 @@ void AdsProvidor_t::updateSymbolProcessDataBuffer(std::string symbolName, const 
     }
 }
 
-void AdsProvidor_t::subscribeSymbols() {
-    throw std::runtime_error("not implemented");
-}
-
-uint32_t AdsProvidor_t::mapSymbolTipeToSize(const symbolDataType_t& symbolType ) {
+uint32_t AdsProvider_t::mapSymbolTipeToSize(const symbolDataType_t& symbolType ) {
     switch (symbolType) {
         case symbolDataType_t::e_bool:
             return sizeof(bool);
@@ -223,28 +228,6 @@ uint32_t AdsProvidor_t::mapSymbolTipeToSize(const symbolDataType_t& symbolType )
     }
 }
 
-uint32_t AdsProvidor_t::durationToNs(std::chrono::high_resolution_clock::duration duration) {
+uint32_t AdsProvider_t::durationToNs(std::chrono::high_resolution_clock::duration duration) {
     return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() / 100);
-}
-
-void AdsProvidor_t::subscribeSymbol(symbolDefinition_t& symbolDefinition) {
-    if (symbolDefinition.subscribed)
-        throw std::runtime_error("symbol already subscribed");
-    symbolDefinition.subscribed = true;
-
-    const AdsNotificationAttrib attrib = {
-        mapSymbolTipeToSize(symbolDefinition.symbolType),
-        ADSTRANS_SERVERONCHA,
-        durationToNs(symbolDefinition.expirationDuration),
-        { 4000000 }
-    };
-
-    //AdsNotification notification = {_device.value(), symbolDefinition.symbolName, attrib, &symbolChangedCallback, 0xBEEFDEAD};
-
-    //symbolDefinition.adsNotification.emplace();
-}
-
-void AdsProvidor_t::unsubscribeSymbols() {
-    throw std::runtime_error("not implemented");
-// delete ads notification attrib and AdsNotification
 }

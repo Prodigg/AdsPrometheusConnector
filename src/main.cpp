@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
     ProcessDataBuffer_t processDataBuffer;
 
-    AdsProvidor_t adsProvidor(processDataBuffer,
+    AdsProvider_t adsProvidor(processDataBuffer,
         {config.getRemoteNetId()._1, config.getRemoteNetId()._2, config.getRemoteNetId()._3, config.getRemoteNetId()._4, config.getRemoteNetId()._5, config.getRemoteNetId()._6},
         config.getRemoteIp(),
         {config.getLocalNetId()._1, config.getLocalNetId()._2, config.getLocalNetId()._3, config.getLocalNetId()._4, config.getLocalNetId()._5,config.getLocalNetId()._6},
