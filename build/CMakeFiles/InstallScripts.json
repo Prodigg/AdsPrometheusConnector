@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/cmake_install.cmake",
-		"/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/_deps/json-build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

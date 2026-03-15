@@ -1,5 +1,0 @@
-/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/CMakeFiles/CppAdsPrometheusConnector.dir
-/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/CMakeFiles/edit_cache.dir
-/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/CMakeFiles/rebuild_cache.dir
-/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/_deps/json-build/CMakeFiles/edit_cache.dir
-/home/prodigg/CLionProjects/CppAdsPrometeusConnector/build/_deps/json-build/CMakeFiles/rebuild_cache.dir
