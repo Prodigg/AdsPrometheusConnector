@@ -10,11 +10,12 @@
 
 #include "AdsVariableList.h"
 
-AdsProvider_t::AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution) :
+AdsProvider_t::AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, const AmsNetId localAmsNetId, const long refreshTimeResolution) :
     _processDataBuffer(processDataBuffer), _refreshTimeResolution(refreshTimeResolution) {
 
     bhf::ads::SetLocalAddress(localAmsNetId);
-    _device.emplace(remoteIPv4, remoteAmsNetId, AMSPORT_R0_PLC_TC3);
+    _device.emplace(remoteIPv4, remoteAmsNetId, AMSPORT_R0_PLC_TC3); //TODO: make port configurable in config
+    std::cout << "INFO: Starting ADS client. Remote IP: " << remoteIPv4 << " Remote AmsNetID: " << remoteAmsNetId << " Port: " << AMSPORT_R0_PLC_TC3 << "\n";
     _thread.emplace(std::jthread(&AdsProvider_t::threadLoop, this));
 }
 

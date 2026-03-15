@@ -13,6 +13,7 @@ PrometheusEndpoint_t::PrometheusEndpoint_t(ProcessDataBuffer_t& dataBuffer, cons
     endpoint.setHandler(router.handler());
 
     _thread.emplace(std::jthread(&PrometheusEndpoint_t::threadLoop, this));
+    std::cout << "INFO: Started Prometheus endpoint at port: " << port << "\n";
 }
 
 bool PrometheusEndpoint_t::addSymbol(const prometheusMetric_t& metric) {

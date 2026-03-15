@@ -140,7 +140,7 @@ public:
     [[nodiscard]] inline uint16_t getHttpPort() const {return httpPort;};
     [[nodiscard]] inline long getRefreshTimeResolution() const {return refreshTimeResolution;};
 
-    void configureADSProvidor(AdsProvider_t& AdsProvidor) const;
+    void configureADSProvidor(AdsProvider_t& AdsProvider) const;
     void configurePrometheusEndpoint(PrometheusEndpoint_t& Endpoint) const;
 
 private:

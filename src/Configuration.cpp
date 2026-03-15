@@ -173,11 +173,6 @@ void config_t::parseSymbol(const std::string& symbol) {
     // check labels
     if (configData.at(symbol).contains("labels")) {
         for (const auto& value: configData.at(symbol).at("labels").items()) {
-            //if (value.key() == "alias") continue;
-            //if (value.key() == "type") continue;
-            //if (value.key() == "description") continue;
-            //if (value.key() == "ADSDatatype") continue;
-            //if (value.key() == "scrapingTime") continue;
 
             if (!value.value().contains("value")) {
                 std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << std::endl;
@@ -224,12 +219,9 @@ additionalDataMetric_t config_t::parseAdditionalDataMetric (const std::string& s
         additionalData.customDescription = configData.at(symbol).at(additionalDataName).at("customDescription");
 
     if (configData.at(symbol).at(additionalDataName).contains("labels")) {
+        if (additionalData.carryLabels)
+            std::cout << R"(WARNING: Configured "carryLabels = true", but specified "labels" in the same symbol. In the symbol: )" << symbol << "." << additionalDataName << " Is this intended?\n";
         for (const auto& value: configData.at(symbol).at(additionalDataName).at("labels").items()) {
-            // if (value.key() == "alias") continue;
-            // if (value.key() == "type") continue;
-            // if (value.key() == "description") continue;
-            // if (value.key() == "ADSDatatype") continue;
-            // if (value.key() == "scrapingTime") continue;
 
             if (!value.value().contains("value")) {
                 std::cerr<<"ERROR: missing value in " << value.key() << " at symbol: "<< symbol << "." << additionalDataName << std::endl;
@@ -241,9 +233,9 @@ additionalDataMetric_t config_t::parseAdditionalDataMetric (const std::string& s
     return additionalData;
 }
 
-void config_t::configureADSProvidor(AdsProvider_t& AdsProvidor) const {
+void config_t::configureADSProvidor(AdsProvider_t& AdsProvider) const {
     for (const variable_t & variable: variables) {
-        AdsProvidor.addSymbol(variable.symbolADSName, variable.ADSType, variable.scrapingDuration);
+        AdsProvider.addSymbol(variable.symbolADSName, variable.ADSType, variable.scrapingDuration);
     }
 }
 
