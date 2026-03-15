@@ -46,9 +46,11 @@ struct symbolDefinition_t {
     std::chrono::steady_clock::time_point lastRead;
 };
 
-/*! Due to constraints to the callback function, subscribing is currently not implemented
- * This may change if the performance is terrible, and significant effort on optimizations is required
-*/
+struct ADSReadGroup_t {
+    std::chrono::steady_clock::duration scrapingTime;
+    std::chrono::steady_clock::time_point lastRead;
+    std::vector<symbolDefinition_t*> readGroupSymbols;
+};
 
 class AdsProvider_t {
 public:
@@ -56,6 +58,7 @@ public:
     ~AdsProvider_t();
     void addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::steady_clock::duration scrapingTime);
 
+    void generateReadGroups();
 private:
 
     /*!
@@ -108,6 +111,10 @@ private:
      */
     static uint32_t durationToNs(std::chrono::high_resolution_clock::duration duration);
 
+    void readGroups();
+
+    void readGroup(const ADSReadGroup_t& group, size_t readGroupIndex);
+
     /*!
      * @brief this is the main thread function
      */
@@ -122,6 +129,10 @@ private:
 
     //! this stack points to the data in the vector _symbolNames
     std::stack<symbolDefinition_t*> _symbolsToRead;
+
+    //! This datastructures represents the readGroups.
+    //! It has a pointer to the data in the vector _symbolNames with the symbolNames.
+    std::vector<ADSReadGroup_t> _readGroups;
 
     ProcessDataBuffer_t& _processDataBuffer;
 

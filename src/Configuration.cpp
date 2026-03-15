@@ -237,6 +237,7 @@ void config_t::configureADSProvidor(AdsProvider_t& AdsProvider) const {
     for (const variable_t & variable: variables) {
         AdsProvider.addSymbol(variable.symbolADSName, variable.ADSType, variable.scrapingDuration);
     }
+    AdsProvider.generateReadGroups();
 }
 
 void config_t::configurePrometheusEndpoint(PrometheusEndpoint_t& Endpoint) const {

@@ -71,7 +71,8 @@ void AdsProvider_t::threadLoop(std::stop_token stoken) {
     while (!stoken.stop_requested()) {
         {
             std::scoped_lock(_symbolNamesMutex);
-            readSymbols();
+            readGroups();
+            //readSymbols();
         }
         next += std::chrono::milliseconds(_refreshTimeResolution);
         std::this_thread::sleep_until(next); // wait to allow for addSymbol to insert data into _symbolName
@@ -235,4 +236,65 @@ uint32_t AdsProvider_t::mapSymbolTipeToSize(const symbolDataType_t& symbolType )
 
 uint32_t AdsProvider_t::durationToNs(std::chrono::high_resolution_clock::duration duration) {
     return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() / 100);
+}
+
+void AdsProvider_t::readGroups() {
+    for (size_t i = 0; i < _readGroups.size(); ++i) {
+        const ADSReadGroup_t& group = _readGroups.at(i);
+        if (group.lastRead + group.scrapingTime <= std::chrono::steady_clock::now())
+            readGroup(group, i);
+    }
+}
+
+void AdsProvider_t::readGroup(const ADSReadGroup_t& group, const size_t readGroupIndex) {
+    constexpr std::string_view worker ("main");
+    if (group.readGroupSymbols.empty())
+        return;
+
+    const auto startReadTime = std::chrono::steady_clock::now();
+    std::vector<std::string> symbolsToRead;
+    symbolsToRead.reserve(group.readGroupSymbols.size());
+
+    for (const symbolDefinition_t* symbol: group.readGroupSymbols)
+        symbolsToRead.emplace_back(symbol->symbolName);
+
+    AdsVariableList readVars(_device.value(), symbolsToRead, _symbolCache);
+    try {
+        readVars.read();
+    } catch (const AdsException& e) {
+        std::cerr << "Error while reading Ads Symbols " << ": " << e.what() << " Worker: " << worker << " read Group: " << readGroupIndex << std::endl;
+        for (const std::string & symbol: symbolsToRead) {
+            updateSymbolProcessDataBufferFailed(symbol);
+        }
+    }
+
+    // insert data into process data buffer
+    for (const std::string & symbolName: symbolsToRead) {
+        updateSymbolProcessDataBuffer(symbolName, readVars, startReadTime);
+    }
+
+    _processDataBuffer.insertReadGroupMetric({
+        .readTime = std::chrono::steady_clock::now() - startReadTime,
+        .dataReadTime = std::chrono::system_clock::now(),
+        .worker = std::string(worker),
+        .readGroup = std::to_string(readGroupIndex)});
+}
+
+void AdsProvider_t::generateReadGroups() {
+    _readGroups.clear();
+
+    for (symbolDefinition_t & symbol: _symbolNames) {
+        // find valid buffer to put value
+        const auto groupRule = [&symbol](const ADSReadGroup_t& group) {
+            return group.scrapingTime == symbol.expirationDuration && group.readGroupSymbols.size() < 200;
+        };
+
+        if (auto it = std::ranges::find_if(_readGroups, groupRule); it != _readGroups.end())
+            it->readGroupSymbols.emplace_back(&symbol);
+        else {
+            auto& group = _readGroups.emplace_back(symbol.expirationDuration, symbol.lastRead);
+            group.readGroupSymbols.emplace_back(&symbol);
+        }
+    }
+    std::cout << "INFO: generated " << _readGroups.size() << " read groups from " << _symbolNames.size() << " symbols" << std::endl;
 }
