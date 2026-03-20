@@ -139,6 +139,7 @@ public:
     [[nodiscard]] inline ConfigNetId getRemoteNetId() const {return remoteNetId;}
     [[nodiscard]] inline std::string getRemoteIp() const {return remoteIp;};
     [[nodiscard]] inline uint16_t getHttpPort() const {return httpPort;};
+    [[nodiscard]] inline uint16_t getAdsRemotePort() const {return adsRemotePort;};
     [[nodiscard]] inline long getRefreshTimeResolution() const {return refreshTimeResolution;};
 
     void configureADSProvidor(AdsProvider_t& AdsProvider) const;
