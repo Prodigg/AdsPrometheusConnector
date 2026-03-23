@@ -10,6 +10,7 @@
 #include "AdsDevice.h"
 #include "vector"
 #include <algorithm>
+#include <iostream>
 
 /*
  * Thanks to li317546360 for writing this code. GitHub: https://github.com/li317546360
@@ -30,9 +31,14 @@ struct AdsVariableList {
             if (symbolEntryCache.contains(symbol)) {
                 m_symbolEntries.push_back(symbolEntryCache.at(symbol));
             } else {
-                AdsSymbolEntry symbolEntry = m_route.getSymbolEntry(symbol);
-                symbolEntryCache.emplace(symbol, symbolEntry);
-                m_symbolEntries.push_back(symbolEntry);
+                try {
+                    AdsSymbolEntry symbolEntry = m_route.getSymbolEntry(symbol);
+                    symbolEntryCache.emplace(symbol, symbolEntry);
+                    m_symbolEntries.push_back(symbolEntry);
+                } catch(const AdsException& e) {
+                    std::cerr << "ERROR: during resolving of index/offset of symbol " << symbol << ": " << e.what() << std::endl;
+                    continue;
+                }
             }
             const AdsSymbolEntry& lastElement = m_symbolEntries.back();
             dataSize += lastElement.size;
@@ -163,7 +169,7 @@ private:
 
     void initWBuf() {
         auto pInt32buf = reinterpret_cast<int32_t*>(const_cast<uint8_t*>(m_wBuf.data()));
-        const auto symbolSize = m_symbolNames.size();
+        const auto symbolSize = std::min( {m_symbolNames.size(), m_symbolEntries.size()});
         for (int i = 0; i < symbolSize; ++i) {
             *pInt32buf = m_symbolEntries.at(i).iGroup;
             ++pInt32buf;

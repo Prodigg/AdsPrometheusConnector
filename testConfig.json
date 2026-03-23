@@ -23,7 +23,7 @@
     }
   },
 
-  "NodeRed.bDoNotDisturbStatus": {
+  "NodeRed.bDoNotDisturbStatu": {
     "ADSDatatype": "BOOL",
     "scrapingTime": 1.5,
 

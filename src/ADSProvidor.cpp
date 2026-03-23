@@ -163,6 +163,7 @@ void AdsProvider_t::updateSymbolProcessDataBuffer(const std::string& symbolName,
     try {
         if (symbolDefinition.symbolType == symbolDataType_t::e_bool) {
             const auto* data = static_cast<bool *>(varList.getSymbolData(symbolName, nullptr));
+            if (!data) throw std::runtime_error("couldnt get data from symbol");
             updateSymbolProcessDataBuffer(_symbolNames.at(symbolDefinitionIndex), *data, readStartTime);
         } else if (symbolDefinition.symbolType == symbolDataType_t::e_char) {
             const auto* data = static_cast<char *>(varList.getSymbolData(symbolName, nullptr));
@@ -202,7 +203,7 @@ void AdsProvider_t::updateSymbolProcessDataBuffer(const std::string& symbolName,
             updateSymbolProcessDataBuffer(symbolDefinition, *data, readStartTime);
         } else
             throw std::runtime_error("unknown symbol type");
-    } catch (const AdsException& e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error while reading Ads Symbol " << symbolDefinition.symbolName << ": " << e.what() << std::endl;
         updateSymbolProcessDataBufferFailed(symbolDefinition);
     }
