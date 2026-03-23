@@ -214,3 +214,21 @@ long AdsDevice::WriteReqEx(uint32_t group, uint32_t offset, size_t length,
 	return AdsSyncWriteReqEx(GetLocalPort(), &m_Addr, group, offset,
 				 static_cast<uint32_t>(length), buffer);
 }
+
+AdsSymbolEntry AdsDevice::getSymbolEntry(const std::string &symbolName) const
+{
+    AdsSymbolEntry entry;
+    uint32_t bytesRead = 0;
+    uint32_t error = ReadWriteReqEx2(
+        ADSIGRP_SYM_INFOBYNAMEEX,
+        0x0,
+        sizeof(entry),
+        &entry,
+        sizeof(symbolName),
+        symbolName.c_str(),
+        &bytesRead);
+    if (error) {
+        throw AdsException(error);
+    }
+    return entry;
+}

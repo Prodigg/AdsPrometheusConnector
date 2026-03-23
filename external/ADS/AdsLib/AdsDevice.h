@@ -56,6 +56,8 @@ using AdsHandle = AdsResource<uint32_t>;
 struct AdsDevice {
 	AdsDevice(const std::string &ipV4, AmsNetId netId, uint16_t port);
 
+	AdsSymbolEntry getSymbolEntry(const std::string &symbolName) const;
+
 	DeviceInfo GetDeviceInfo() const;
 
 	/** Get handle to access AdsVariable by indexGroup/Offset */
