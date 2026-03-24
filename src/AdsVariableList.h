@@ -51,6 +51,7 @@ struct AdsVariableList {
     }
 
     void read() {
+        _dirtyADSCom = false;
         uint32_t bytesRead = 0;
         const size_t symbolSize = m_symbolNames.size();
         const uint32_t error = m_route.ReadWriteReqEx2(
@@ -62,6 +63,7 @@ struct AdsVariableList {
             m_symbolInfos.data(),
             &bytesRead);
         if (error || (m_rBuf.size() != bytesRead)) {
+            _dirtyADSCom = true;
             throw AdsException(error);
         }
     }
@@ -98,6 +100,28 @@ struct AdsVariableList {
     void * getSymbolData(const std::string& name, size_t* length) const {
 
         auto pdbf = getDataBuf(nullptr);
+
+        if (_dirtyADSCom) {
+            // use different way of finding data
+
+            size_t index = 0;
+            for (const auto& symbol: m_symbolNames) {
+                if (symbol == name)
+                    break;
+                index++;
+            }
+
+            for (int i=0; i<m_symbolInfos.size();++i) {
+                if (m_symbolEntries.at(i).iGroup == m_symbolInfos.at(index).indexGroup && m_symbolEntries.at(i).iOffs == m_symbolInfos.at(index).indexOffset) {
+                    if (length) {
+                        *length = m_symbolEntries.at(i).size;
+                    }
+                    return pdbf;
+                }
+                pdbf += m_symbolEntries.at(i).size;
+            }
+            return nullptr;
+        }
 
         for (int i=0; i<m_symbolEntries.size();++i) {
             if (name == m_symbolNames.at(i)) {
@@ -186,6 +210,9 @@ private:
     std::vector<AdsSymbolInfoByName> m_symbolInfos;
     std::vector<uint8_t> m_rBuf;
     std::vector<uint8_t> m_wBuf;
+
+    // if true, something went wrong during ads communication, need to use special matching to get data
+    bool _dirtyADSCom = false;
 };
 
 #endif //CPPADSPROMETHEUSCONNECTOR_ADSVARIABLELIST_H
