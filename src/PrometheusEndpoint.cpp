@@ -163,7 +163,7 @@ std::string PrometheusEndpoint_t::generateAdditionalInformation() {
         additionalInformation.at("readGroups").emplace_back(json({
             {"worker", worker},
             {"readGroup", readGroup},
-            {"scrapingTime_s", std::chrono::duration_cast<std::chrono::seconds>(readGroupScrapingTime).count()},
+            {"scrapingTime_ms", std::chrono::duration_cast<std::chrono::milliseconds>(readGroupScrapingTime).count()},
             {"symbols", readGroupSymbols}
         })
         );
