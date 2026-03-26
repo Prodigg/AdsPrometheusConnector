@@ -140,11 +140,11 @@ std::string PrometheusEndpoint_t::generateAdditionalInformation() {
     /*
      * Formate:
      * {
-     *      readGroups: [
+     *      "readGroups": [
      *          {
      *              "worker": "<worker>",
      *              "readGroup": <number of readGroup>,
-     *              "scrapingTime_s": <scrapingTime in s>,
+     *              "scrapingTime_ms": <scrapingTime in ms>,
      *              "symbols": [
      *                  "symbol1",
      *                  "symbol2",

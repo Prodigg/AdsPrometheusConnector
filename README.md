@@ -20,10 +20,12 @@ With this connector, it is possible to monitor ADS variables without any complex
 
 ## Features
 
-- ADS cyclic reading of variables
+- deterministic ADS cyclic reading of variables
 - providing an HTTP endpoint for prometheus to scrape
 - prometheus labels supported
 - additional metrics to provide performance of the connector
+- automatic grouping of variables that are built at start
+- additional information endpoint that displays diagnostic information
 
 ## Quick Start
 To use this program use the prebuilt binary or compile it yourself with cmake. <br>
@@ -42,11 +44,11 @@ To start the program, launch it and provide in the first argument the path of th
 
 ### Running as a daemon
 If you are using systemd, you can install this as a daemon. I have provided a example service configuration.
-To start, copy the `AdsPrometheusConnector.service` into the `/etc/systemd/system/` folder. 
-After that, copy the binary into the `/usr/local/bin/` folder. Make sure that the binary is a executable. <br><br>
+1. Copy the `AdsPrometheusConnector.service` into the `/etc/systemd/system/` folder
+2. Copy the binary into the `/usr/local/bin/` folder. Make sure that the binary is a executable.
 
-After setting up the daemon, make a configuration file under `/etc/AdsPropetheusConnector/config.json`. 
-You may also consider using the example config `textConfig.json` as a starting point.
+3. make a configuration file under `/etc/AdsPropetheusConnector/config.json`.
+Consider using the example config `textConfig.json` as a starting point.
 
 ## Configuration
 
@@ -113,12 +115,8 @@ You may also consider using the example config `textConfig.json` as a starting p
 This specifies how often should be checked if a value has to be scraped. 
 Meaning this is in the worst case the allowed deviation of the scraping time. 
 The formula for min and max scraping time looks like this (where $t_s$ is the `scrapingTime` and $t_p$ is the `pollTimeResolution` ):
-$$
-t_{min} = t_s - t_p
-$$
-$$
-t_{max} = t_s + t_p
-$$
+$$t_{min} = t_s - t_p$$
+$$t_{max} = t_s + t_p$$
 
 Please note, that when decreasing the pollResolutionTime may have a noticeable effect on CPU time, 
 when the connector is not reading any ADS variable. Setting the time to 0 may cause the program to use any available CPU time. 
@@ -216,6 +214,62 @@ scrape_configs:
   - job_name: 'ads_connector'
     static_configs:
       - targets: ['localhost:9090']
+```
+
+## Additional information endpoint
+The Connector provides an additional endpoint for displaying how the values are grouped. 
+The endpoint is located at `/additionalInformation` and is in a json formate.
+
+### Formate
+
+```json
+{
+  "readGroups": [
+    {
+      "worker": "<worker>",
+      "readGroup": 1,
+      "scrapingTime_ms": 1000, 
+      "symbols": [
+        "symbol1", 
+        "symbol2"
+      ]
+    }
+  ]
+}
+```
+
+#### Example
+
+```json
+{
+    "readGroups": [
+        {
+            "readGroup": "0",
+            "scrapingTime_ms": 500,
+            "symbols": [
+                "GrafanaExporter.nDoorState"
+            ],
+            "worker": "main"
+        },
+        {
+            "readGroup": "2",
+            "scrapingTime_ms": 1000,
+            "symbols": [
+                "NodeRed.bIsLightOn",
+                "NodeRed.nLightValue_Lux"
+            ],
+            "worker": "main"
+        },
+        {
+            "readGroup": "1",
+            "scrapingTime_ms": 1500,
+            "symbols": [
+                "NodeRed.bDoNotDisturbStatus"
+            ],
+            "worker": "main"
+        }
+    ]
+}
 ```
 
 ## Limitations
