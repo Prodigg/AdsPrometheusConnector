@@ -12,6 +12,8 @@
 #include "AdsVariableList.h"
 #include <pistache/endpoint.h>
 #include <pistache/router.h>
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 /*
  * Prometheus formate:
@@ -82,7 +84,7 @@ private:
     /*!
      * @brief this is the callback to retrieve data
      */
-    void getData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+    void getData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) const;
 
     /*!
      * @brief get the prometheus metric name
@@ -104,6 +106,18 @@ private:
      */
     std::string generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) const;
 
+
+    /*!
+     * @brief this is the callback for the root page, it provides a nice welcome text for the user
+     */
+    void getRootPageData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+
+    /*!
+     * @brief this is the callback for the additional information page, it provides additional data in a json formate
+     */
+    void getAdditionalInformationPageData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response);
+
+    std::string generateAdditionalInformation();
 
     std::vector<prometheusMetric_t> _metrics;
     std::optional<std::jthread> _thread;

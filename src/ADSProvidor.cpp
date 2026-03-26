@@ -260,7 +260,7 @@ void AdsProvider_t::readGroup(const ADSReadGroup_t& group, const size_t readGrou
         return;
 
     const auto startReadTime = std::chrono::steady_clock::now();
-    std::vector<std::string> symbolsToRead;
+    std::vector<std::string> symbolsToRead; //TODO: fix this redundant copy
     symbolsToRead.reserve(group.readGroupSymbols.size());
 
     for (const symbolDefinition_t* symbol: group.readGroupSymbols)
@@ -285,7 +285,9 @@ void AdsProvider_t::readGroup(const ADSReadGroup_t& group, const size_t readGrou
         .readTime = std::chrono::steady_clock::now() - startReadTime,
         .dataReadTime = std::chrono::system_clock::now(),
         .worker = std::string(worker),
-        .readGroup = std::to_string(readGroupIndex)});
+        .readGroup = std::to_string(readGroupIndex),
+        .readGroupSymbols = std::move(symbolsToRead),
+        .readGroupScrapingTime = group.scrapingTime});
 }
 
 void AdsProvider_t::generateReadGroups() {

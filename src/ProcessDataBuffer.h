@@ -23,6 +23,8 @@ struct ADSReadGroupMetric_t {
     std::chrono::system_clock::time_point dataReadTime; // for the timestamp
     std::string worker;
     std::string readGroup;
+    std::vector<std::string> readGroupSymbols; // for the additional information endpoint
+    std::chrono::steady_clock::duration readGroupScrapingTime; // for the additional information endpoint
     bool operator==(const ADSReadGroupMetric_t & other) const {
         return worker == other.worker && readGroup == other.readGroup;
     }

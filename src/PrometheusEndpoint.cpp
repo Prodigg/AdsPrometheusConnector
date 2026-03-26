@@ -8,6 +8,8 @@ PrometheusEndpoint_t::PrometheusEndpoint_t(ProcessDataBuffer_t& dataBuffer, cons
     addr(Pistache::Ipv4::any(), Pistache::Port(port)),
     endpoint(addr) {
     Pistache::Rest::Routes::Get(router, "/metrics", Pistache::Rest::Routes::bind(&PrometheusEndpoint_t::getData, this));
+    Pistache::Rest::Routes::Get(router, "/", Pistache::Rest::Routes::bind(&PrometheusEndpoint_t::getRootPageData, this));
+    Pistache::Rest::Routes::Get(router, "/additionalInformation", Pistache::Rest::Routes::bind(&PrometheusEndpoint_t::getAdditionalInformationPageData, this));
 
     endpoint.init(opts);
     endpoint.setHandler(router.handler());
@@ -34,7 +36,7 @@ void PrometheusEndpoint_t::threadLoop(std::stop_token stoken) {
     }
 }
 
-void PrometheusEndpoint_t::getData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) {
+void PrometheusEndpoint_t::getData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) const {
     response.send(Pistache::Http::Code::Ok, generateEndpointData());
 }
 
@@ -79,7 +81,7 @@ std::string PrometheusEndpoint_t::generateEndpointData() const {
     std::stringstream ss;
 
     // group metrics
-    for (const auto &[readTime, dataReadTime, worker, readGroup]: _dataBuffer.dumpReadGroupMetrics()) {
+    for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime]: _dataBuffer.dumpReadGroupMetrics()) {
         ss << grafanaMetricGenerator_t::generateMetric(
             "connector_read_group_read_time_nanoseconds",
             std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(readTime).count()),
@@ -122,6 +124,53 @@ std::string PrometheusEndpoint_t::generateEndpointData() const {
     return ss.str();
 }
 
+void PrometheusEndpoint_t::getRootPageData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) {
+    response.send(Pistache::Http::Code::Ok,
+        R"(Welcome to the ADS Prometheus connector.
+Go to /metrics for the prometheus http endpoint.
+For additional information go to /additionalInformation. The additional information page provides data in the json formate.
+)");
+
+}
+void PrometheusEndpoint_t::getAdditionalInformationPageData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) {
+    response.send(Pistache::Http::Code::Ok, generateAdditionalInformation());
+}
+
+std::string PrometheusEndpoint_t::generateAdditionalInformation() {
+    /*
+     * Formate:
+     * {
+     *      readGroups: [
+     *          {
+     *              "worker": "<worker>",
+     *              "readGroup": <number of readGroup>,
+     *              "scrapingTime_s": <scrapingTime in s>,
+     *              "symbols": [
+     *                  "symbol1",
+     *                  "symbol2",
+     *                  ...
+     *              ]
+     *          },
+     *          ...
+     *      ]
+     * }
+     */
+    json additionalInformation;
+    additionalInformation.emplace("readGroups", json::array({}));
+
+
+    for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime]: _dataBuffer.dumpReadGroupMetrics()) {
+        additionalInformation.at("readGroups").emplace_back(json({
+            {"worker", worker},
+            {"readGroup", readGroup},
+            {"scrapingTime_s", std::chrono::duration_cast<std::chrono::seconds>(readGroupScrapingTime).count()},
+            {"symbols", readGroupSymbols}
+        })
+        );
+    }
+
+    return additionalInformation.dump(4);
+}
 
 std::string grafanaMetricGenerator_t::generateMetric(const std::string_view metricName, const std::string_view data, const std::string_view helpStr, const prometheusMetricType type, const std::vector<label_t>& labels, const std::chrono::system_clock::time_point readTime) {
     std::stringstream ss;
