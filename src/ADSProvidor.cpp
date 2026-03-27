@@ -248,13 +248,13 @@ uint32_t AdsProvider_t::durationToNs(std::chrono::high_resolution_clock::duratio
 
 void AdsProvider_t::readGroups() {
     for (size_t i = 0; i < _readGroups.size(); ++i) {
-        const ADSReadGroup_t& group = _readGroups.at(i);
+        ADSReadGroup_t& group = _readGroups.at(i);
         if (group.lastRead + group.scrapingTime <= std::chrono::steady_clock::now())
             readGroup(group, i);
     }
 }
 
-void AdsProvider_t::readGroup(const ADSReadGroup_t& group, const size_t readGroupIndex) {
+void AdsProvider_t::readGroup(ADSReadGroup_t& group, const size_t readGroupIndex) {
     constexpr std::string_view worker ("main");
     if (group.readGroupSymbols.empty())
         return;
@@ -288,6 +288,8 @@ void AdsProvider_t::readGroup(const ADSReadGroup_t& group, const size_t readGrou
         .readGroup = std::to_string(readGroupIndex),
         .readGroupSymbols = std::move(symbolsToRead),
         .readGroupScrapingTime = group.scrapingTime});
+
+    group.lastRead = std::chrono::steady_clock::now();
 }
 
 void AdsProvider_t::generateReadGroups() {

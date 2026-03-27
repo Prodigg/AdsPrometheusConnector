@@ -113,7 +113,7 @@ private:
 
     void readGroups();
 
-    void readGroup(const ADSReadGroup_t& group, size_t readGroupIndex);
+    void readGroup(ADSReadGroup_t& group, size_t readGroupIndex);
 
     /*!
      * @brief this is the main thread function
