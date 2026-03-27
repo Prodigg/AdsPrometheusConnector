@@ -32,7 +32,7 @@ AdsProvider_t::~AdsProvider_t() {
 }
 
 void AdsProvider_t::addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::steady_clock::duration scrapingTime) {
-    std::scoped_lock(_symbolNamesMutex);
+    std::scoped_lock l(_symbolNamesMutex);
     _symbolNames.emplace_back(symbolName, symbolType, scrapingTime, std::chrono::steady_clock::now());
 }
 
@@ -77,9 +77,8 @@ void AdsProvider_t::threadLoop(std::stop_token stoken) {
 
     while (!stoken.stop_requested()) {
         {
-            std::scoped_lock(_symbolNamesMutex);
+            std::scoped_lock l(_symbolNamesMutex);
             readGroups();
-            //readSymbols();
         }
         next += std::chrono::milliseconds(_refreshTimeResolution);
         std::this_thread::sleep_until(next); // wait to allow for addSymbol to insert data into _symbolName
@@ -126,6 +125,9 @@ void AdsProvider_t::readAllMarkedSymbols() {
             for (const std::string & symbol: symbolsToRead) {
                 updateSymbolProcessDataBufferFailed(symbol);
             }
+            // invalidate all symbols of the cache, an error here may be a sign that the address space has been invalidated
+            // so an rebuild of the cache is triggered just to be sure
+            invalidateAllSymbolInCache();
         }
 
         // insert data into process data buffer
@@ -309,4 +311,13 @@ void AdsProvider_t::generateReadGroups() {
         }
     }
     std::cout << "INFO: generated " << _readGroups.size() << " read groups from " << _symbolNames.size() << " symbols" << std::endl;
+}
+
+void AdsProvider_t::invalidateSymbolInCache(const std::string& symbolName) {
+    if (_symbolCache.contains(symbolName))
+        _symbolCache.erase(symbolName);
+}
+
+void AdsProvider_t::invalidateAllSymbolInCache() {
+    _symbolCache.clear();
 }

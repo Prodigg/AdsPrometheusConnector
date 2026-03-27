@@ -116,6 +116,17 @@ private:
     void readGroup(ADSReadGroup_t& group, size_t readGroupIndex);
 
     /*!
+     * @brief deletes a symbol in the cache, so it is regenerated at read
+     * @param symbolName
+     */
+    void invalidateSymbolInCache(const std::string& symbolName);
+
+    /*!
+     * @brief deletes the entire symbol cache
+     */
+    void invalidateAllSymbolInCache();
+
+    /*!
      * @brief this is the main thread function
      */
     void threadLoop(std::stop_token stoken);
