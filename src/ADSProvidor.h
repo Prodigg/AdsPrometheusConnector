@@ -5,19 +5,16 @@
 
 #pragma once
 
-#include "ProcessDataBuffer.h"
+
 #include <string>
 #include <vector>
 #include <chrono>
-#include <concepts>
 #include <stack>
 #include <type_traits>
 #include <thread>
 
 #include "AdsLib.h"
 #include "AdsDevice.h"
-#include "AdsVariable.h"
-#include "AdsNotificationOOI.h"
 #include "AdsVariableList.h"
 #include "ProcessDataBuffer.h"
 
@@ -131,6 +128,29 @@ private:
     void invalidateAllSymbolInCache();
 
     /*!
+     * @brief initialize the ADSDevice if it was destroyed
+     * @details using the stored data that was initially provided by the constructor to recreate ADSDevice
+     */
+    void initializeADSDevice();
+
+    /*!
+     * @brief check if the ADS Server is alive and may destroy the ADS Device and rebuild it if necessary
+     * @details only returns after it is ensured that the connection is reestablished,
+     * also it checks if the ADS device is in stop or config and only proceeds continues if it is ok.
+     */
+    void checkADSConnection();
+
+    /*!
+     * @breif this implements the actual logic for handling a dead ADS Device
+     */
+    void handleDeadADSConnection();
+
+    /*!
+     * @brief this function sets the variable status to invalid, to show that the connection has been lost.
+     */
+    void setAllVariablesToInvalid();
+
+    /*!
      * @brief this is the main thread function
      */
     void threadLoop(std::stop_token stoken);
@@ -145,7 +165,7 @@ private:
     //! this stack points to the data in the vector _symbolNames
     std::stack<symbolDefinition_t*> _symbolsToRead;
 
-    //! This datastructures represents the readGroups.
+    //! These datastructures represent the readGroups.
     //! It has a pointer to the data in the vector _symbolNames with the symbolNames.
     std::vector<ADSReadGroup_t> _readGroups;
 
@@ -155,4 +175,9 @@ private:
     std::mutex _symbolNamesMutex;
     std::vector<symbolDefinition_t> _symbolNames;
     std::unordered_map<std::string, AdsSymbolEntry> _symbolCache;
+
+    const AmsNetId _remoteAmsNetId; //! remote AmsNetId for construction ADS Device
+    const std::string _remoteIPv4; //! remote IPv4 for construction ADS Device
+    const AmsNetId _localAmsNetId; //! local AmsNetId for construction ADS Device
+    const uint16_t _amsRemotePort; //! remote Ams Port for construction ADS Device
 };

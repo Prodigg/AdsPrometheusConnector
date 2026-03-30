@@ -10,19 +10,15 @@
 
 #include "AdsVariableList.h"
 
-AdsProvider_t::AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, const AmsNetId localAmsNetId, const long refreshTimeResolution, uint16_t amsRemotePort) :
-    _processDataBuffer(processDataBuffer), _refreshTimeResolution(refreshTimeResolution) {
+AdsProvider_t::AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, const AmsNetId remoteAmsNetId, const std::string remoteIPv4, const AmsNetId localAmsNetId, const long refreshTimeResolution, const uint16_t amsRemotePort) :
+    _processDataBuffer(processDataBuffer),
+    _refreshTimeResolution(refreshTimeResolution),
+    _remoteAmsNetId(remoteAmsNetId),
+    _remoteIPv4(remoteIPv4),
+    _localAmsNetId(localAmsNetId),
+    _amsRemotePort(amsRemotePort) {
 
-    uint16_t _amsRemotePort = AMSPORT_R0_PLC_TC3;
-    if (amsRemotePort != 0)
-        _amsRemotePort = amsRemotePort;
-
-    bhf::ads::SetLocalAddress(localAmsNetId);
-    _device.emplace(remoteIPv4, remoteAmsNetId, AMSPORT_R0_PLC_TC3);
-    std::cout << "INFO: Starting ADS client. Remote IP: " << remoteIPv4 <<
-        " Remote AmsNetID: " << remoteAmsNetId << " Remote Port: " << _amsRemotePort <<
-            " Local AmsNetID: " << localAmsNetId << " RemotePort: " << _amsRemotePort <<
-                " LocalPort: " << _device->GetLocalPort() << "\n";
+    initializeADSDevice();
 
     _thread.emplace(std::jthread(&AdsProvider_t::threadLoop, this));
 }
@@ -77,6 +73,8 @@ void AdsProvider_t::threadLoop(std::stop_token stoken) {
     auto next = std::chrono::steady_clock::now();
 
     while (!stoken.stop_requested()) {
+        checkADSConnection();
+
         {
             std::scoped_lock l(_symbolNamesMutex);
             readGroups();
@@ -263,4 +261,78 @@ void AdsProvider_t::invalidateSymbolInCache(const std::string& symbolName) {
 
 void AdsProvider_t::invalidateAllSymbolInCache() {
     _symbolCache.clear();
+}
+
+void AdsProvider_t::initializeADSDevice() {
+    if (_device)
+        return; // nothing to do, device already constructed
+
+    uint16_t amsRemotePort = AMSPORT_R0_PLC_TC3;
+    if (_amsRemotePort != 0) // override default port, if available and specified by config
+        amsRemotePort = _amsRemotePort;
+
+    bhf::ads::SetLocalAddress(_localAmsNetId);
+    try {
+        _device.emplace(_remoteIPv4, _remoteAmsNetId, amsRemotePort);
+    }catch (const AdsException& e) {
+        std::cerr << "ERROR: failed to Start ADS Client: " << e.what() << std::endl;
+        return;
+    }
+
+    std::cout << "INFO: Started ADS client. Remote IP: " << _remoteIPv4 <<
+        " Remote AmsNetID: " << _remoteAmsNetId << " Remote Port: " << amsRemotePort <<
+            " Local AmsNetID: " << _localAmsNetId << " RemotePort: " << amsRemotePort <<
+                " LocalPort: " << _device->GetLocalPort() << "\n";
+}
+
+void AdsProvider_t::checkADSConnection() {
+    bool firstIteration = true;
+    while (true) {
+        if (!_device) { // if the first init was unsuccessfully
+            setAllVariablesToInvalid();
+            handleDeadADSConnection();
+        }
+
+        try {
+            const auto [ads, device] = _device->GetState();
+            if (ads == ADSSTATE_RUN)
+                return; // both are in run, we are good to go
+            std::cerr << "ERROR: ADS is in invalid state (not RUN) pausing reading. ADS State: "
+                << ads << std::endl;
+        } catch (AdsException& e) {
+            std::cerr << "ERROR: failed to get device state: " << e.what() << ". Connection is presumed dead."<< std::endl;
+            setAllVariablesToInvalid();
+            handleDeadADSConnection();
+        }
+
+        if (firstIteration) { // invalidate all symbols in cache if it is the first time the connection has failed
+            firstIteration = false;
+            std::scoped_lock l(_symbolNamesMutex);
+            invalidateAllSymbolInCache();
+            setAllVariablesToInvalid();
+        }
+
+        const auto currentTimePoint = std::chrono::steady_clock::now();
+        std::this_thread::sleep_until(currentTimePoint + std::chrono::seconds(1)); // sleep one second and retry
+    }
+
+}
+
+void AdsProvider_t::handleDeadADSConnection() {
+    while (true) {
+        std::cerr << "INFO: trying to reestablish connection" << std::endl;
+        _device.reset();
+        initializeADSDevice();
+
+        if (_device) // return if construction was successfully
+            return;
+
+        const auto currentTimePoint = std::chrono::steady_clock::now();
+        std::this_thread::sleep_until(currentTimePoint + std::chrono::seconds(1)); // sleep one second and retry
+    }
+}
+
+void AdsProvider_t::setAllVariablesToInvalid() {
+    for (auto& symbol: _symbolNames)
+        updateSymbolProcessDataBufferFailed(symbol);
 }
