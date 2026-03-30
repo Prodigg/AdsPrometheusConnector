@@ -23,6 +23,7 @@ AdsProvider_t::AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId re
         " Remote AmsNetID: " << remoteAmsNetId << " Remote Port: " << _amsRemotePort <<
             " Local AmsNetID: " << localAmsNetId << " RemotePort: " << _amsRemotePort <<
                 " LocalPort: " << _device->GetLocalPort() << "\n";
+
     _thread.emplace(std::jthread(&AdsProvider_t::threadLoop, this));
 }
 
@@ -82,67 +83,6 @@ void AdsProvider_t::threadLoop(std::stop_token stoken) {
         }
         next += std::chrono::milliseconds(_refreshTimeResolution);
         std::this_thread::sleep_until(next); // wait to allow for addSymbol to insert data into _symbolName
-    }
-}
-
-void AdsProvider_t::readSymbols() {
-    for (symbolDefinition_t& symbol: _symbolNames) {
-        if (symbol.lastRead + symbol.expirationDuration <= std::chrono::steady_clock::now())
-            addSymbolForReading(symbol);
-    }
-    readAllMarkedSymbols();
-}
-
-void AdsProvider_t::addSymbolForReading(symbolDefinition_t& symbolDefinition) {
-    _symbolsToRead.push(&symbolDefinition);
-}
-
-void AdsProvider_t::readAllMarkedSymbols() {
-    if (_symbolsToRead.empty())
-        return;
-
-    const auto startReadTime = std::chrono::steady_clock::now();
-
-    std::vector<std::string> symbolsToRead;
-    if (_symbolsToRead.size() > 200)
-        symbolsToRead.reserve(200);
-    else
-        symbolsToRead.reserve(_symbolsToRead.size());
-
-    // read symbols until empty
-    size_t readGroupIndex = 0;
-    while (!_symbolsToRead.empty()) {
-        for (int i = 0; i < symbolsToRead.capacity(); ++i) {
-            symbolsToRead.emplace_back(_symbolsToRead.top()->symbolName);
-            _symbolsToRead.pop();
-        }
-
-        AdsVariableList readVars(_device.value(), symbolsToRead, _symbolCache);
-        try {
-            readVars.read();
-        } catch (const AdsException& e) {
-            std::cerr << "Error while reading Ads Symbols " << ": " << e.what() << std::endl;
-            for (const std::string & symbol: symbolsToRead) {
-                updateSymbolProcessDataBufferFailed(symbol);
-            }
-            // invalidate all symbols of the cache, an error here may be a sign that the address space has been invalidated
-            // so an rebuild of the cache is triggered just to be sure
-            invalidateAllSymbolInCache();
-        }
-
-        // insert data into process data buffer
-        for (const std::string & symbolName: symbolsToRead) {
-            updateSymbolProcessDataBuffer(symbolName, readVars, startReadTime);
-        }
-
-        _processDataBuffer.insertReadGroupMetric({
-            .readTime = std::chrono::steady_clock::now() - startReadTime,
-            .dataReadTime = std::chrono::system_clock::now(),
-            .worker = "main",
-            .readGroup = std::to_string(readGroupIndex)});
-
-        symbolsToRead.clear();
-        ++readGroupIndex;
     }
 }
 
@@ -211,7 +151,7 @@ void AdsProvider_t::updateSymbolProcessDataBuffer(const std::string& symbolName,
     }
 }
 
-uint32_t AdsProvider_t::mapSymbolTipeToSize(const symbolDataType_t& symbolType ) {
+uint32_t AdsProvider_t::mapSymbolTypeToSize(const symbolDataType_t& symbolType ) {
     switch (symbolType) {
         case symbolDataType_t::e_bool:
             return sizeof(bool);
@@ -276,6 +216,9 @@ void AdsProvider_t::readGroup(ADSReadGroup_t& group, const size_t readGroupIndex
         for (const std::string & symbol: symbolsToRead) {
             updateSymbolProcessDataBufferFailed(symbol);
         }
+        // invalidate all symbols of the cache, an error here may be a sign that the address space has been invalidated
+        // so an rebuild of the cache is triggered just to be sure
+        invalidateAllSymbolInCache();
     }
 
     // insert data into process data buffer

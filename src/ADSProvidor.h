@@ -56,8 +56,19 @@ class AdsProvider_t {
 public:
     explicit AdsProvider_t(ProcessDataBuffer_t& processDataBuffer, AmsNetId remoteAmsNetId, std::string remoteIPv4, AmsNetId localAmsNetId, long refreshTimeResolution, uint16_t amsRemotePort);
     ~AdsProvider_t();
+
+    /*!
+     * @brief add a symbol to be grouped by a read group
+     * @warning a symbol may only be read after \ref AdsProvider_t::generateReadGroups() was called
+     * @param symbolName
+     * @param symbolType
+     * @param scrapingTime
+     */
     void addSymbol(const std::string& symbolName, symbolDataType_t symbolType, std::chrono::steady_clock::duration scrapingTime);
 
+    /*!
+     * @brief trigger the generation of the read groups
+     */
     void generateReadGroups();
 private:
 
@@ -66,7 +77,7 @@ private:
      * @param symbolType type of symbol
      * @return size of symbol
      */
-    static uint32_t mapSymbolTipeToSize(const symbolDataType_t& symbolType);
+    static uint32_t mapSymbolTypeToSize(const symbolDataType_t& symbolType);
 
     /*!
      * @brief uses a symbol definition to set the symbol to a new value
@@ -89,30 +100,23 @@ private:
     void updateSymbolProcessDataBufferFailed(const std::string & symbolName);
 
     /*!
-     * @brief this function checks time last read from symbols and reads them if necessary.
-     */
-    void readSymbols();
-
-    /*!
-     * @brief mark symbol to read
-     * @param symbolDefinition
-     */
-    void addSymbolForReading(symbolDefinition_t& symbolDefinition);
-
-    /*!
-     * @brief read all marked symbols and insert them into the process data buffer
-     */
-    void readAllMarkedSymbols();
-
-    /*!
      * Converts a duration to a time that is n*100ns
      * @param duration duration to convert
      * @return *100ns
      */
     static uint32_t durationToNs(std::chrono::high_resolution_clock::duration duration);
 
+    /*!
+     * @brief read all groups
+     * @details this is the first function to call to initiate a read
+     */
     void readGroups();
 
+    /*!
+     * @brief read a single group
+     * @param group the group to read
+     * @param readGroupIndex index to identify the group for metrics
+     */
     void readGroup(ADSReadGroup_t& group, size_t readGroupIndex);
 
     /*!
