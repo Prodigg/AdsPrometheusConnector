@@ -27,6 +27,23 @@ With this connector, it is possible to monitor ADS variables without any complex
 - automatic grouping of variables that are built at start
 - additional information endpoint that displays diagnostic information
 
+## ⚠️ Limitations ⚠️
+
+This is a personal project built for a my use case and is not extensively tested.
+
+- This connector is **not designed** for **safety-critical** or **mission-critical** systems.
+- **Data loss may occur** (e.g., if the application crashes or the ADS connection fails).
+- **No high availability** mechanisms are implemented.
+- **Not suitable** for **high-frequency** or **real-time** data acquisition.
+- **No security** mechanisms are implemented. HTTP and ADS communications are **not encrypted**.
+- During an online change the connector cannot detect variable changes.
+  It is highly recommended to restart the connector after a download to ensure that the data is valid.
+- During an upload if the timing is right, the connector cannot detect it and displays invalid data.
+  It is highly recommended to restart the connector after a download to ensure that the data is valid.
+
+It may be used in industrial environments where occasional **data loss is acceptable** and monitoring is non-critical.
+
+
 ## Quick Start
 To use this program use the prebuilt binary or compile it yourself with cmake. <br>
 To start the program, launch it and provide in the first argument the path of the configuration file. 
@@ -272,19 +289,7 @@ The endpoint is located at `/additionalInformation` and is in a json formate.
 }
 ```
 
-## Limitations
-
-This is a personal project built for a my use case and is not extensively tested.
-
-- This connector is **not designed** for **safety-critical** or **mission-critical** systems.
-- **Data loss may occur** (e.g., if the application crashes or the ADS connection fails).
-- **No high availability** mechanisms are implemented.
-- **Not suitable** for **high-frequency** or **real-time** data acquisition.
-- **No security** mechanisms are implemented. HTTP and ADS communications are **not encrypted**.
-
-It may be used in industrial environments where occasional **data loss is acceptable** and monitoring is non-critical.
-
-### Alternatives
+## Alternatives
 
 If this connector doesn't fit the use case consider using [TwinCAT Analytics](https://www.beckhoff.com/en-en/products/automation/twincat-analytics/) or
 [TwinCAT IoT Data Agent](https://www.beckhoff.com/en-en/products/automation/twincat/tfxxxx-twincat-3-functions/tf6xxx-connectivity/tf6720.html).
