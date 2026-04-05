@@ -149,17 +149,29 @@ The scraping time specifies how often the variable is read from ADS Server.
 The scraping time of the prometheus endpoint is specified in the config of prometheus.
 
 ### Supported ADS Datatypes
+
+Select a appropriate datatype for your ADS Variable by the type like bool or for numeric types type and size from the list bellow.
+A list of the ADS variables and size can be found [here](https://infosys.beckhoff.com/english.php?content=../content/1033/tcplccontrol/925424907.html&id=). 
+Dont include the text in the braces from the `FLOAT` and `DOUBLE` these are just the size of the variable. 
+
+#### supported config options
+
 - BOOL
 - UINT8
 - UINT16
 - UINT32
 - UINT64
-- FLOAT
-- DOUBLE
+- FLOAT (32-bit)
+- DOUBLE (64-bit)
 - INT8
 - INT16
 - INT32
 - INT64
+
+#### Examples
+- A `INT` is a 16-bit integer so the `INT16` is appropriate.
+- A `WORD` is a 16-bit unsigned integer so use `UINT16`. 
+- A `REAL` is a 32-bit floating point, so use `FLOAT`.
 
 ### Additional metrics
 The large structures in the config (`currentLastTime`, `readTime`, `lastTrySuccessful` and `readTimestamp`) are additional 
