@@ -137,8 +137,9 @@ private:
      * @brief check if the ADS Server is alive and may destroy the ADS Device and rebuild it if necessary
      * @details only returns after it is ensured that the connection is reestablished,
      * also it checks if the ADS device is in stop or config and only proceeds continues if it is ok.
+     * @returns if the connection was lost or paused
      */
-    void checkADSConnection();
+    bool checkADSConnection();
 
     /*!
      * @breif this implements the actual logic for handling a dead ADS Device

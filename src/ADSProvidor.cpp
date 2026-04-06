@@ -73,14 +73,14 @@ void AdsProvider_t::threadLoop(std::stop_token stoken) {
     auto next = std::chrono::steady_clock::now();
 
     while (!stoken.stop_requested()) {
-        checkADSConnection();
-
         {
             std::scoped_lock l(_symbolNamesMutex);
             readGroups();
         }
+        if (checkADSConnection()) // check connection, behind to cause the least read delay and jitter
+            next = std::chrono::steady_clock::now(); // reset next because unspecified time passed in checkADSConnection()
         next += std::chrono::milliseconds(_refreshTimeResolution);
-        std::this_thread::sleep_until(next); // wait to allow for addSymbol to insert data into _symbolName
+        std::this_thread::sleep_until(next);
     }
 }
 
@@ -285,7 +285,7 @@ void AdsProvider_t::initializeADSDevice() {
                 " LocalPort: " << _device->GetLocalPort() << "\n";
 }
 
-void AdsProvider_t::checkADSConnection() {
+bool AdsProvider_t::checkADSConnection() {
     bool firstIteration = true;
     while (true) {
         if (!_device) { // if the first init was unsuccessfully
@@ -295,12 +295,16 @@ void AdsProvider_t::checkADSConnection() {
 
         try {
             const auto [ads, device] = _device->GetState();
-            if (ads == ADSSTATE_RUN)
-                return; // both are in run, we are good to go
+            if (ads == ADSSTATE_RUN) {
+                if (!firstIteration)
+                    std::cout << "INFO: ADS is in RUN, resuming reading." << std::endl;
+                return !firstIteration; // both are in run, we are good to go
+            }
             std::cerr << "ERROR: ADS is in invalid state (not RUN) pausing reading. ADS State: "
                 << ads << std::endl;
         } catch (AdsException& e) {
             std::cerr << "ERROR: failed to get device state: " << e.what() << ". Connection is presumed dead."<< std::endl;
+            std::scoped_lock l(_symbolNamesMutex);
             setAllVariablesToInvalid();
             handleDeadADSConnection();
         }
