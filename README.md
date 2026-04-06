@@ -38,11 +38,6 @@ This is a personal project built for a my use case and is not extensively tested
 - **No security** mechanisms are implemented. HTTP and ADS communications are **not encrypted**.
 - During an online change the connector cannot detect variable changes.
   It is highly recommended to restart the connector after a download to ensure that the data is valid.
-- During an upload if the timing is right, the connector cannot detect it and displays invalid data.
-  It is highly recommended to restart the connector after a download to ensure that the data is valid.
-
-It may be used in industrial environments where occasional **data loss is acceptable** and monitoring is non-critical.
-
 
 ## Quick Start
 To use this program use the prebuilt binary or compile it yourself with cmake. <br>
