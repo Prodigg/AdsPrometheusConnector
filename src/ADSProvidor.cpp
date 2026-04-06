@@ -195,12 +195,13 @@ void AdsProvider_t::readGroups() {
 }
 
 void AdsProvider_t::readGroup(ADSReadGroup_t& group, const size_t readGroupIndex) {
+    bool allSymbolsSuccessfullyRead = true;
     constexpr std::string_view worker ("main");
     if (group.readGroupSymbols.empty())
         return;
 
     const auto startReadTime = std::chrono::steady_clock::now();
-    std::vector<std::string> symbolsToRead; //TODO: fix this redundant copy
+    std::vector<std::string> symbolsToRead;
     symbolsToRead.reserve(group.readGroupSymbols.size());
 
     for (const symbolDefinition_t* symbol: group.readGroupSymbols)
@@ -215,9 +216,11 @@ void AdsProvider_t::readGroup(ADSReadGroup_t& group, const size_t readGroupIndex
             updateSymbolProcessDataBufferFailed(symbol);
         }
         // invalidate all symbols of the cache, an error here may be a sign that the address space has been invalidated
-        // so an rebuild of the cache is triggered just to be sure
+        // so a rebuild of the cache is triggered just to be sure
         invalidateAllSymbolInCache();
+        allSymbolsSuccessfullyRead = false;
     }
+    allSymbolsSuccessfullyRead &= readVars.allSymbolsSuccessfullyRead();
 
     // insert data into process data buffer
     for (const std::string & symbolName: symbolsToRead) {
@@ -230,7 +233,8 @@ void AdsProvider_t::readGroup(ADSReadGroup_t& group, const size_t readGroupIndex
         .worker = std::string(worker),
         .readGroup = std::to_string(readGroupIndex),
         .readGroupSymbols = std::move(symbolsToRead),
-        .readGroupScrapingTime = group.scrapingTime});
+        .readGroupScrapingTime = group.scrapingTime,
+        .allSymbolsSuccessfullyRead = allSymbolsSuccessfullyRead});
 
     group.lastRead = std::chrono::steady_clock::now();
 }

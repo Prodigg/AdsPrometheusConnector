@@ -37,6 +37,7 @@ struct AdsVariableList {
                     m_symbolEntries.push_back(symbolEntry);
                 } catch(const AdsException& e) {
                     std::cerr << "ERROR: during resolving of index/offset of symbol " << symbol << ": " << e.what() << std::endl;
+                    _allSymbolsSuccessfullyRead = false;
                     continue;
                 }
             }
@@ -154,6 +155,10 @@ struct AdsVariableList {
         return 0;
     }
 
+    [[nodiscard]] bool allSymbolsSuccessfullyRead() const {
+        return _allSymbolsSuccessfullyRead;
+    }
+
 private:
     uint8_t * getStateBuf(size_t* size) const{
         const size_t len = 4 * m_symbolNames.size();
@@ -213,6 +218,7 @@ private:
 
     // if true, something went wrong during ads communication, need to use special matching to get data
     bool _dirtyADSCom = false;
+    bool _allSymbolsSuccessfullyRead = true;
 };
 
 #endif //CPPADSPROMETHEUSCONNECTOR_ADSVARIABLELIST_H

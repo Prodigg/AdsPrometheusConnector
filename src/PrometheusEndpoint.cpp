@@ -81,11 +81,18 @@ std::string PrometheusEndpoint_t::generateEndpointData() const {
     std::stringstream ss;
 
     // group metrics
-    for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime]: _dataBuffer.dumpReadGroupMetrics()) {
+    for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime, wasLastReadSuccessful]: _dataBuffer.dumpReadGroupMetrics()) {
         ss << grafanaMetricGenerator_t::generateMetric(
             "connector_read_group_read_time_nanoseconds",
             std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(readTime).count()),
             "the readtime of a read group",
+            prometheusMetricType::GAUGE,
+            {{"worker", worker}, {"group", readGroup}},
+            dataReadTime);
+        ss << grafanaMetricGenerator_t::generateMetric(
+            "connector_read_group_read_successful",
+            std::to_string(wasLastReadSuccessful),
+            "1 if all variables of the read group where read successful",
             prometheusMetricType::GAUGE,
             {{"worker", worker}, {"group", readGroup}},
             dataReadTime);
@@ -159,12 +166,13 @@ std::string PrometheusEndpoint_t::generateAdditionalInformation() {
     additionalInformation.emplace("readGroups", json::array({}));
 
 
-    for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime]: _dataBuffer.dumpReadGroupMetrics()) {
+    for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime, wasLastReadSuccessful]: _dataBuffer.dumpReadGroupMetrics()) {
         additionalInformation.at("readGroups").emplace_back(json({
             {"worker", worker},
             {"readGroup", readGroup},
             {"scrapingTime_ms", std::chrono::duration_cast<std::chrono::milliseconds>(readGroupScrapingTime).count()},
-            {"symbols", readGroupSymbols}
+            {"symbols", readGroupSymbols},
+            {"wasLastReadSuccessful", wasLastReadSuccessful}
         })
         );
     }
