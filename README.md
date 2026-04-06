@@ -169,7 +169,7 @@ Dont include the text in the braces from the `FLOAT` and `DOUBLE` these are just
 - A `REAL` is a 32-bit floating point, so use `FLOAT`.
 
 ### Additional metrics
-The large structures in the config (`currentLastTime`, `readTime`, `lastTrySuccessful` and `readTimestamp`) are additional 
+The large structures in the config (`currentLastTime`, `readTime` and `lastTrySuccessful`) are additional 
 prometheus metrics that may be enabled and configured. These metric show performance and status information about the
 scrape of the ADS variable. 
 
@@ -240,6 +240,30 @@ scrape_configs:
       - targets: ['localhost:9090']
 ```
 
+## Connector prometheus metrics
+The connector provides certain performance metrics to the prometheus endpoint. 
+These metrics always start with `connector_`. They show metrics about the read groups.
+
+### Example
+
+```text
+# HELP connector_read_group_read_time_nanoseconds the readtime of a read group
+# TYPE connector_read_group_read_time_nanoseconds gauge
+connector_read_group_read_time_nanoseconds{worker="main",group="0"} 2908271 1775462431234
+
+# HELP connector_read_group_read_successful 1 if all variables of the read group where read successful
+# TYPE connector_read_group_read_successful gauge
+connector_read_group_read_successful{worker="main",group="0"} 1 1775462431234
+
+# HELP connector_read_group_read_time_nanoseconds the readtime of a read group
+# TYPE connector_read_group_read_time_nanoseconds gauge
+connector_read_group_read_time_nanoseconds{worker="main",group="1"} 1326351 1775462431235
+
+# HELP connector_read_group_read_successful 1 if all variables of the read group where read successful
+# TYPE connector_read_group_read_successful gauge
+connector_read_group_read_successful{worker="main",group="1"} 1 1775462431235
+```
+
 ## Additional information endpoint
 The Connector provides an additional endpoint for displaying how the values are grouped. 
 The endpoint is located at `/additionalInformation` and is in a json formate.
@@ -256,7 +280,8 @@ The endpoint is located at `/additionalInformation` and is in a json formate.
       "symbols": [
         "symbol1", 
         "symbol2"
-      ]
+      ],
+      "wasLastReadSuccessful": true
     }
   ]
 }
@@ -266,33 +291,36 @@ The endpoint is located at `/additionalInformation` and is in a json formate.
 
 ```json
 {
-    "readGroups": [
-        {
-            "readGroup": "0",
-            "scrapingTime_ms": 500,
-            "symbols": [
-                "GrafanaExporter.nDoorState"
-            ],
-            "worker": "main"
-        },
-        {
-            "readGroup": "2",
-            "scrapingTime_ms": 1000,
-            "symbols": [
-                "NodeRed.bIsLightOn",
-                "NodeRed.nLightValue_Lux"
-            ],
-            "worker": "main"
-        },
-        {
-            "readGroup": "1",
-            "scrapingTime_ms": 1500,
-            "symbols": [
-                "NodeRed.bDoNotDisturbStatus"
-            ],
-            "worker": "main"
-        }
-    ]
+  "readGroups": [
+    {
+      "readGroup": "0",
+      "scrapingTime_ms": 500,
+      "symbols": [
+        "GrafanaExporter.nDoorState"
+      ],
+      "wasLastReadSuccessful": true,
+      "worker": "main"
+    },
+    {
+      "readGroup": "2",
+      "scrapingTime_ms": 1000,
+      "symbols": [
+        "NodeRed.bIsLightOn",
+        "NodeRed.nLightValue_Lux"
+      ],
+      "wasLastReadSuccessful": true,
+      "worker": "main"
+    },
+    {
+      "readGroup": "1",
+      "scrapingTime_ms": 1500,
+      "symbols": [
+        "NodeRed.bDoNotDisturbStatus"
+      ],
+      "wasLastReadSuccessful": true,
+      "worker": "main"
+    }
+  ]
 }
 ```
 
