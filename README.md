@@ -20,7 +20,7 @@ With this connector, it is possible to monitor ADS variables without any complex
 
 ## Features
 
-- deterministic ADS cyclic reading of variables
+- ADS cyclic reading of variables (currently tested to 5000 symbols)
 - providing an HTTP endpoint for prometheus to scrape
 - prometheus labels supported
 - additional metrics to provide performance of the connector
