@@ -58,6 +58,8 @@ struct AdsDevice {
 
 	AdsSymbolEntry getSymbolEntry(const std::string &symbolName) const;
 
+	AdsSymbolInfo getSymbolEntryEx(const std::string &symbolName) const;
+
 	DeviceInfo GetDeviceInfo() const;
 
 	/** Get handle to access AdsVariable by indexGroup/Offset */

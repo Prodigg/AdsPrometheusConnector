@@ -232,3 +232,46 @@ AdsSymbolEntry AdsDevice::getSymbolEntry(const std::string &symbolName) const
     }
     return entry;
 }
+
+AdsSymbolInfo AdsDevice::getSymbolEntryEx(const std::string& symbolName) const
+{
+	std::vector<uint8_t> buffer(1024); // start with reasonable size
+	uint32_t bytesRead = 0;
+
+	uint32_t error = ReadWriteReqEx2(
+		ADSIGRP_SYM_INFOBYNAMEEX,
+		0x0,
+		buffer.size(),
+		buffer.data(),
+		symbolName.size() + 1, // include null terminator!
+		symbolName.c_str(),
+		&bytesRead);
+
+	if (error) {
+		throw AdsException(error);
+	}
+
+	if (bytesRead < sizeof(AdsSymbolEntry)) {
+		throw std::runtime_error("Invalid ADS response");
+	}
+
+	// reinterpret header
+	auto* entry = reinterpret_cast<AdsSymbolEntry*>(buffer.data());
+
+	AdsSymbolInfo result;
+	result.header = *entry;
+
+	// pointer to first string
+	const char* ptr = reinterpret_cast<const char*>(buffer.data() + sizeof(AdsSymbolEntry));
+
+	// extract strings safely
+	result.name = std::string(ptr, entry->nameLength);
+	ptr += entry->nameLength + 1;
+
+	result.type = std::string(ptr, entry->typeLength);
+	ptr += entry->typeLength + 1;
+
+	result.comment = std::string(ptr, entry->commentLength);
+
+	return result;
+}

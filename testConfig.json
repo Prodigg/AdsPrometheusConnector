@@ -43,5 +43,10 @@
         }
       }
     }
+  },
+  "GrafanaExporter.bDoNotDisturb": {
+    "alias": "bDoNotDisturb2",
+    "ADSDatatype": "BOOL",
+    "scrapingTime": 1
   }
 }

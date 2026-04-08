@@ -17,6 +17,13 @@ bool operator<(const AmsAddr &lhs, const AmsAddr &rhs);
 std::ostream &operator<<(std::ostream &os, const AmsNetId &netId);
 AmsNetId make_AmsNetId(const std::string &addr);
 
+struct AdsSymbolInfo {
+	AdsSymbolEntry header;
+	std::string name;
+	std::string type;
+	std::string comment;
+};
+
 namespace bhf
 {
 namespace ads

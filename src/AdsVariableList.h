@@ -32,9 +32,9 @@ struct AdsVariableList {
                 m_symbolEntries.push_back(symbolEntryCache.at(symbol));
             } else {
                 try {
-                    AdsSymbolEntry symbolEntry = m_route.getSymbolEntry(symbol);
-                    symbolEntryCache.emplace(symbol, symbolEntry);
-                    m_symbolEntries.push_back(symbolEntry);
+                    AdsSymbolInfo symbolEntry = m_route.getSymbolEntryEx(symbol);
+                    symbolEntryCache.emplace(symbol, symbolEntry.header);
+                    m_symbolEntries.push_back(symbolEntry.header);
                 } catch(const AdsException& e) {
                     std::cerr << "ERROR: during resolving of index/offset of symbol " << symbol << ": " << e.what() << std::endl;
                     _allSymbolsSuccessfullyRead = false;
