@@ -17,6 +17,8 @@ add_executable(AdsPrometheusConnector
         src/Configuration.h
         src/Configuration.cpp
         src/AdsVariableList.h
+        src/prometheusBuilder.h
+        src/prometheusBuilder.cpp
 )
 
 set(CMAKE_POLICY_VERSION 4.1)
