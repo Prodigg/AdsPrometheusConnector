@@ -58,14 +58,14 @@ private:
      * @brief generates the full endpoint data to serve
      * @return
      */
-    std::string generateEndpointData() const;
+    void generateEndpointData(std::string& outStr) const;
 
     /*!
      * @brief generate prometheus symbol for additional data
      * @param data additional data
      * @return
      */
-    std::string generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) const;
+    void generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value, std::string& outStr) const;
 
 
     /*!

@@ -37,7 +37,12 @@ void PrometheusEndpoint_t::threadLoop(std::stop_token stoken) {
 }
 
 void PrometheusEndpoint_t::getData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) const {
-    response.send(Pistache::Http::Code::Ok, generateEndpointData());
+    const auto startTime = std::chrono::steady_clock::now();
+    std::string str;
+    generateEndpointData(str);
+    response.send(Pistache::Http::Code::Ok, str);
+
+    auto timeTaken = std::chrono::steady_clock::now() - startTime;
 }
 
 
@@ -51,9 +56,9 @@ std::string PrometheusEndpoint_t::getPrometheusMetricName(const prometheusMetric
     return std::string(metric.alias);
 }
 
-std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value) const {
+void PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_t& metric, const additionalDataMetric_t& data, const std::string&& normalNamePrefix, const std::string&& normalDescription, const std::string& value, std::string& outStr) const {
     if (!data.show)
-        return "";
+        return;
 
     std::string additionalDataName;
     if (data.alias.empty())
@@ -73,29 +78,31 @@ std::string PrometheusEndpoint_t::generateAdditionalData(const prometheusMetric_
         helpStr,
         prometheusMetricType::GAUGE,
         labels,
-        symbolData.lastReadTime);
+        symbolData.lastReadTime,
+        outStr);
 }
 
 
-std::string PrometheusEndpoint_t::generateEndpointData() const {
-    std::stringstream ss;
+void PrometheusEndpoint_t::generateEndpointData(std::string& outStr) const {
 
     // group metrics
     for (const auto &[readTime, dataReadTime, worker, readGroup, readGroupSymbols, readGroupScrapingTime, wasLastReadSuccessful]: _dataBuffer.dumpReadGroupMetrics()) {
-        ss << grafanaMetricGenerator_t::generateMetric(
+        grafanaMetricGenerator_t::generateMetric(
             "connector_read_group_read_time_nanoseconds",
             std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(readTime).count()),
             "the readtime of a read group",
             prometheusMetricType::GAUGE,
             {{"worker", worker}, {"group", readGroup}},
-            dataReadTime);
-        ss << grafanaMetricGenerator_t::generateMetric(
+            dataReadTime,
+            outStr);
+        grafanaMetricGenerator_t::generateMetric(
             "connector_read_group_read_successful",
             std::to_string(wasLastReadSuccessful),
             "1 if all variables of the read group where read successful",
             prometheusMetricType::GAUGE,
             {{"worker", worker}, {"group", readGroup}},
-            dataReadTime);
+            dataReadTime,
+            outStr);
     }
 
     for (const prometheusMetric_t & metric: _metrics) {
@@ -103,32 +110,36 @@ std::string PrometheusEndpoint_t::generateEndpointData() const {
         symbolData_t data;
         _dataBuffer.getSymbolData(metric.symbolName, data);
 
-        ss << grafanaMetricGenerator_t::generateMetric(
+        grafanaMetricGenerator_t::generateMetric(
             getPrometheusMetricName(metric),
             data.symbolValue,
             metric.description,
             metric.metricType,
             metric.labels,
-            data.lastReadTime);
+            data.lastReadTime,
+            outStr);
 
-        ss << generateAdditionalData(metric, metric.currentLastTime,
+        generateAdditionalData(metric, metric.currentLastTime,
             "current_last_time",
             "The time between this and last read Type in MS",
-            std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(data.lastCurrentTime).count()));
-        ss << generateAdditionalData(metric, metric.ReadTime,
+            std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(data.lastCurrentTime).count()),
+            outStr);
+        generateAdditionalData(metric, metric.ReadTime,
             "read_time",
             "The time it took to read the symbol Type in NS",
-            std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(data.symbolReadTime).count()));
-        ss << generateAdditionalData(metric, metric.LastTryStatus,
+            std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(data.symbolReadTime).count()),
+            outStr);
+        generateAdditionalData(metric, metric.LastTryStatus,
             "last_try_status",
             "true if the last try was successful",
-            std::to_string(data.wasLastReadSuccessful));
-        ss << generateAdditionalData(metric, metric.LastReadTimestamp,
+            std::to_string(data.wasLastReadSuccessful),
+            outStr);
+        generateAdditionalData(metric, metric.LastReadTimestamp,
             "timestamp",
             "UNIX timestamp of last read",
-            std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(data.lastReadTime.time_since_epoch()).count()));
+            std::to_string(std::chrono::duration_cast<std::chrono::microseconds>(data.lastReadTime.time_since_epoch()).count()),
+            outStr);
     }
-    return ss.str();
 }
 
 void PrometheusEndpoint_t::getRootPageData(const Pistache::Rest::Request& request, Pistache::Http::ResponseWriter response) {

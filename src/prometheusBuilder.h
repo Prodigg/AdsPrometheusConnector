@@ -63,13 +63,14 @@ public:
      * @param readTime
      * @return metric string
      */
-    [[nodiscard]] static std::string generateMetric(
+    static void generateMetric(
         std::string_view metricName,
         std::string_view data,
         std::string_view helpStr,
         prometheusMetricType type,
         const std::vector<label_t>& labels,
-        std::chrono::system_clock::time_point readTime);
+        std::chrono::system_clock::time_point readTime,
+        std::string& outStr);
 
 
 private:
@@ -78,30 +79,30 @@ private:
      * @param str
      * @return
      */
-    [[nodiscard]] static std::string escapeLabelStr(std::string_view str);
+    static std::string escapeLabelStr(std::string_view str);
 
     /*!
      * @brief properly escape the help text
      * @param str
      * @return
      */
-    [[nodiscard]] static std::string escapeHelpStr(std::string_view str);
+    static std::string escapeHelpStr(std::string_view str);
 
     /*!
      * @brief generate the help text for the prometheus endpoint
      * @param helpStr
      * @param metricName
-     * @return
+     * @param outStr [out] reference to the string to append result to
      */
-    [[nodiscard]] static std::string generateHelp(std::string_view helpStr, std::string_view metricName);
+    static void generateHelp(std::string_view helpStr, std::string_view metricName, std::string& outStr);
 
     /*!
      * @brief generate the type text for the prometheus endpoint
      * @param type
      * @param metricName
-     * @return
+     * @param outStr [out] reference to the string to append result to
      */
-    [[nodiscard]] static std::string generateType(prometheusMetricType type, std::string_view metricName);
+    static void generateType(prometheusMetricType type, std::string_view metricName, std::string& outStr);
 
     /*!
      * @brief generate the dataline for the prometheus endpoint
@@ -109,16 +110,16 @@ private:
      * @param data
      * @param labels
      * @param dataReadTime
-     * @return
+     * @param outStr [out] reference to the string to append result to
      */
-    [[nodiscard]] static std::string generateDataLine(std::string_view metricName, std::string_view data, const std::vector<label_t>& labels, std::chrono::system_clock::time_point dataReadTime);
+    static void generateDataLine(std::string_view metricName, std::string_view data, const std::vector<label_t>& labels, std::chrono::system_clock::time_point dataReadTime, std::string& outStr);
 
     /*!
      * @brief generates the label string for additional categorization.
      * @param labels
-     * @return
+     * @param outStr [out] reference to the string to append result to
      */
-    [[nodiscard]] static std::string generateLabel(const std::vector<label_t>& labels);
+    static void generateLabel(const std::vector<label_t>& labels, std::string& outStr);
 };
 
 #endif //ADSPROMETHEUSCONNECTOR_PROMETHEUSBUILDER_H
